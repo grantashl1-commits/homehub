@@ -26,6 +26,7 @@ import { DAY_PART_TIMES, formatDateShort, fromDateKey, relativeDayLabel, timeAgo
 import type { Claim, KidPlan, Member } from "@/lib/types";
 import { pointpalsAward, pointpalsConfigured, pointpalsSignIn, pointpalsSignOut, usePointPals } from "@/lib/integrations/pointpals";
 import { signalConfigured, signalSignIn, signalSignOut, useSignal } from "@/lib/integrations/signal";
+import { hubFetch } from "@/lib/integrations/hub-api";
 import { EXPENSE_CATEGORIES, notionAction, useNotion } from "@/lib/integrations/notion";
 import { useCalendar } from "@/lib/integrations/calendar";
 import { Avatar } from "@/components/Avatar";
@@ -250,6 +251,34 @@ function googleTemplateUrl(p: KidPlan): string {
 
 function KidPlanRow({ plan, members }: { plan: KidPlan; members: Member[] }) {
   const ms = members.filter((m) => plan.memberIds.includes(m.id));
+  const [busy, setBusy] = useState(false);
+
+  const addToGoogle = async () => {
+    setBusy(true);
+    try {
+      await hubFetch("/api/calendar-events", {
+        method: "POST",
+        body: JSON.stringify({
+          title: `${plan.emoji} ${plan.title}`,
+          date: plan.date,
+          start: plan.time ?? `${String(DAY_PART_TIMES[plan.part].hour).padStart(2, "0")}:00`,
+          end: plan.endTime,
+          location: plan.location,
+        }),
+      });
+      useHub.getState().markPlanAdded(plan.id);
+      sfx.success();
+      toast.success("Added to Google Calendar");
+    } catch {
+      // Service account isn't set up yet: fall back to the pre-filled link.
+      window.open(googleTemplateUrl(plan), "_blank", "noopener");
+      useHub.getState().markPlanAdded(plan.id);
+      toast("Opening Google Calendar to finish it…");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="flex items-center gap-4 rounded-[1.6rem] bg-sky-tint p-4">
       <span className="text-[3rem] leading-none">{plan.emoji}</span>
@@ -266,15 +295,14 @@ function KidPlanRow({ plan, members }: { plan: KidPlan; members: Member[] }) {
           <Avatar key={m.id} member={m} size={3} />
         ))}
       </div>
-      <a
-        href={googleTemplateUrl(plan)}
-        target="_blank"
-        rel="noreferrer"
-        onClick={() => useHub.getState().markPlanAdded(plan.id)}
-        className="tap flex min-h-[4rem] items-center gap-2 rounded-[1.2rem] bg-sky px-5 text-[1.25rem] font-black text-white"
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => void addToGoogle()}
+        className="tap flex min-h-[4rem] items-center gap-2 rounded-[1.2rem] bg-sky px-5 text-[1.25rem] font-black text-white disabled:opacity-60"
       >
-        <CalendarCheck2 className="size-6" /> Add to Google
-      </a>
+        <CalendarCheck2 className="size-6" /> {busy ? "Adding…" : "Add to Google"}
+      </button>
       <button type="button" aria-label="Remove" onClick={() => useHub.getState().removeKidPlan(plan.id)} className="tap grid size-[4rem] place-items-center rounded-full bg-white">
         <Trash2 className="size-6" />
       </button>

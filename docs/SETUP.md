@@ -17,6 +17,8 @@ Code with the Vercel CLI linked you can also run `vercel env add NAME`.
 | `KIDS_ICAL_URL` (optional) | A kids' calendar | Same |
 | `NOTION_TOKEN` | Money and To-dos from the Notion "Home Hub" page | notion.so/profile/integrations → New internal integration "Home Hub" → copy the secret. Then on the Home Hub page: ••• → Connections → add Home Hub |
 | `DEEPSEEK_API_KEY` | "Snap a notice": reads school newsletters into events | platform.deepseek.com → API keys |
+| `GOOGLE_SERVICE_ACCOUNT_JSON` | Writes approved events into Google Calendar | base64 of the downloaded service-account JSON key (see below) |
+| `FAMILY_CALENDAR_ID` | Which calendar those events land in | Google Calendar → the family calendar → *Integrate calendar* → **Calendar ID** (usually the account email) |
 | `VITE_SIGNAL_SUPABASE_URL`, `VITE_SIGNAL_SUPABASE_KEY` | SIGNAL shopping list and meal plan | `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` from the signalnz project |
 | `VITE_SIGNAL_SITE_URL` | Where SIGNAL's recipe photos live | `https://signal.mindcast.co.nz` |
 | `VITE_POINTPALS_SUPABASE_URL`, `VITE_POINTPALS_SUPABASE_KEY` | PointPals jobs, marbles and jars | `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` from the point-pals-app project |
@@ -27,6 +29,31 @@ Redeploy after adding `VITE_*` variables (they're baked into the build).
 > ever lives in Vercel; the hub's `/api/calendar` function reads it and
 > checks `HUB_ACCESS_KEY` before answering. If the link has been shared
 > anywhere else, reset it in Google Calendar ("Reset") and update Vercel.
+
+### Google service account (for writing events)
+
+This lets the hub write a kid's approved event straight into the family
+calendar. Click-by-click:
+
+1. **console.cloud.google.com** → create a project (or reuse one).
+2. **APIs & Services → Library** → search "Google Calendar API" → **Enable**.
+3. **APIs & Services → Credentials → Create credentials → Service account** →
+   name it `home-hub` → **Create and continue** → **Done**.
+4. Open the new service account → **Keys → Add key → Create new key → JSON** →
+   download it.
+5. Base64-encode that file into one line (no newlines):
+   `base64 -w0 home-hub-key.json` (Linux/macOS), or
+   `certutil -encode home-hub-key.json out.txt` and join the lines (Windows).
+   Paste the result as `GOOGLE_SERVICE_ACCOUNT_JSON`.
+6. Copy the service account's **email** (e.g. `home-hub@<project>.iam.gserviceaccount.com`).
+7. In **Google Calendar**, open the family calendar's **Settings and sharing** →
+   **Share with specific people** → add that email → permission **Make changes
+   to events**.
+8. Put the calendar's **Calendar ID** (Settings and sharing → *Integrate
+   calendar* → **Calendar ID**) into `FAMILY_CALENDAR_ID`.
+
+Approving an event now writes it directly; if the service account isn't set up,
+the "Add to Google" button falls back to the pre-filled manual link.
 
 ## 2. On each screen (once)
 

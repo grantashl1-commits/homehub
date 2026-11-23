@@ -70,3 +70,14 @@ Verified at 1180×820 (iPad), 1366×768 (Chromebook) and 1920×1080 (wall).
 - `/api/snap` now calls DeepSeek's vision model (`deepseek-flash`) instead of
   Anthropic. Env var is `DEEPSEEK_API_KEY` (optional `DEEPSEEK_MODEL`, default
   `deepseek-flash`).
+
+## Phase 4 — two-way Google Calendar (in progress)
+
+- Added `POST /api/calendar-events`: signs a service-account JWT with
+  `node:crypto`, swaps it for an OAuth token, and writes the event to the
+  family calendar via the Calendar API (timed and all-day, `Pacific/Auckland`).
+- The approvals "Add to Google" button now calls it and marks the plan added;
+  if the service account isn't configured it falls back to the pre-filled link.
+- Added `GOOGLE_SERVICE_ACCOUNT_JSON` + `FAMILY_CALENDAR_ID`, with a Google
+  Cloud click-by-click walkthrough in SETUP. Calendar reads still use the iCal
+  path (Airbnb stays read-only).
