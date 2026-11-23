@@ -105,3 +105,23 @@ Verified at 1180×820 (iPad), 1366×768 (Chromebook) and 1920×1080 (wall).
 - Family sync remembers changes made just before a reload and saves them first.
 - Guest mode: tap the House guidebook card to read the guide (PDF or web page)
   full screen, with "Open in a new tab" if the site won't show inside the hub.
+
+## 24 Nov 2026: 5 Lens Way guide in the One Eleven style
+
+- The guest guide now looks and works like the One Eleven digital guidebook
+  on carlsonproperties.co.nz: Japandi ivory and charcoal, Fraunces headings,
+  Figtree text, a numbered chapter rail with a progress bar, and a "Need help?"
+  card with the hosts' number.
+- 11 chapters instead of 20 (all the words kept): welcome, arrival & Wi-Fi,
+  the house (Living / Bedrooms / Work & play / Garage & outdoors photo
+  galleries), how-to guides (Sauna / Ice bath / Spa pool / Heating / Gym &
+  bikes), good to know, house rules, Explore Taupō (Adults / Teens / Little
+  ones), Dining & drinks (Restaurants / Cafés / Bars), emergency (Call 111),
+  check-out and thank you.
+- Real house photos from the booking site's media bucket; places reuse One
+  Eleven's photos and links. Tap a place for a QR code to open it on a phone.
+- Tickable check-out list, swipe or arrow keys to turn the page, read-aloud,
+  quick chips for Wi-Fi, lockbox, sauna & spa, check-out.
+- Photos are cached for offline, and any that fail fall back to a plain panel.
+- Content: `src/content/guides.ts`; screen: `src/components/HouseGuide.tsx`;
+  tests: `src/content/guides.test.ts`.
