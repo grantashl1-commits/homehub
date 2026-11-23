@@ -11,6 +11,8 @@ interface Props {
   className?: string;
   ring?: boolean;
   badge?: number | string;
+  /** Badge colour: coral for new notes, ink for jobs waiting. */
+  tone?: "coral" | "ink";
   float?: boolean;
   label?: boolean;
   dim?: boolean;
@@ -19,7 +21,7 @@ interface Props {
 }
 
 /** A PointPals character (or the person's own photo) in a soft coloured circle. Size is in rem. */
-export function Avatar({ member, palId, size = 4, className, ring, badge, float, label, dim, photo }: Props) {
+export function Avatar({ member, palId, size = 4, className, ring, badge, tone = "coral", float, label, dim, photo }: Props) {
   const p = pal(member?.palId ?? palId);
   const src = photo ?? member?.photo;
   const [failed, setFailed] = useState(false);
@@ -66,8 +68,12 @@ export function Avatar({ member, palId, size = 4, className, ring, badge, float,
         )}
         {badge !== undefined && badge !== 0 && (
           <span
-            className="absolute -top-1 -right-1 grid min-w-[1.9rem] place-items-center rounded-full bg-coral px-2 text-[1.1rem] font-black leading-[1.9rem] text-white ring-[0.2rem] ring-white"
-            style={{ fontSize: `${Math.max(1.05, size * 0.22)}rem` }}
+            className={cn(
+              // Sits on the white ring at the top-right, not over the face.
+              "absolute -right-[0.75rem] -top-[0.75rem] z-10 grid min-w-[1.55rem] place-items-center rounded-full px-[0.3rem] font-black leading-[1.55rem] text-white shadow-[0_2px_6px_rgb(0_0_0/0.18)] ring-[0.18rem] ring-white",
+              tone === "ink" ? "bg-ink" : "bg-coral",
+            )}
+            style={{ fontSize: `${Math.min(1.05, Math.max(0.9, size * 0.2))}rem` }}
           >
             {badge}
           </span>
