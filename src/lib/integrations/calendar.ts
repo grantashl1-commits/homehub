@@ -89,13 +89,25 @@ export function onDay(e: CalendarEvent, day: Date): boolean {
   return s >= dayStart && s < dayEnd;
 }
 
-/** Work out whose event it is by looking for family names in the title. */
+/**
+ * Whose event it is: their name in the title, or one of their own words.
+ * "Athletics @ Hilltop" belongs to whoever has "athletics" in their keywords;
+ * an event that matches nobody stays in the Family column.
+ */
 export function eventMembers(e: CalendarEvent, members: Member[], kidPlanMembers?: string[]): string[] {
   if (kidPlanMembers?.length) return kidPlanMembers;
   const title = e.title.toLowerCase();
-  return members
-    .filter((m) => new RegExp(`\\b${m.name.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(title))
-    .map((m) => m.id);
+  return members.filter((m) => memberMatches(m, title)).map((m) => m.id);
+}
+
+/** A whole-word name match, or any of the person's keywords anywhere in the title. */
+export function memberMatches(m: Member, title: string): boolean {
+  const name = m.name.trim().toLowerCase();
+  if (name && new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(title)) return true;
+  return (m.keywords ?? "")
+    .split(",")
+    .map((k) => k.trim().toLowerCase())
+    .some((k) => k.length > 1 && title.includes(k));
 }
 
 export function bookingKind(e: CalendarEvent): "clean" | "checkin" | "checkout" | "stay" {

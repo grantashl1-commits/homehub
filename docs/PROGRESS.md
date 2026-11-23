@@ -1,5 +1,16 @@
 # Progress
 
+## 24 Nov 2026: events land in the right person's column
+
+- Until now the People view guessed an event's owner only from a family
+  name inside the title, so "Athletics @ Hilltop" sat in the Family column.
+- Each person now has **Also matches** in Parent → Family: a comma-separated
+  list of words that mean them on the calendar ("athletics, gymnastics,
+  swimming"). Their name still matches too, as a whole word.
+- Matching is case-insensitive and looks anywhere in the title, so "Swim
+  club" and "SWIMMING lesson" both work. An event that matches nobody stays
+  in the Family column rather than disappearing, and one that matches two
+  people shows in both columns.
 ## 24 Nov 2026: backup and restore
 
 - **Parent → Settings → Backup**: "Save a backup" downloads one JSON file with

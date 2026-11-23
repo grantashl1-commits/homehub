@@ -400,6 +400,16 @@ function Family() {
                 </button>
               ))}
             </div>
+            <label className="mt-3 flex items-center gap-2">
+              <span className="shrink-0 text-[1.15rem] font-extrabold text-ink-2">🗓 Also matches</span>
+              <input
+                value={m.keywords ?? ""}
+                onChange={(e) => updateMember(m.id, { keywords: e.target.value || undefined })}
+                placeholder="athletics, gymnastics, swimming"
+                aria-label={`Words that mean ${m.name} on the calendar`}
+                className="h-[3.6rem] min-w-0 flex-1 rounded-[1rem] border-2 border-line bg-white px-3 text-[1.2rem] font-bold outline-none focus:border-sky"
+              />
+            </label>
           </div>
         ))}
       </div>
