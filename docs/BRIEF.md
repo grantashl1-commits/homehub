@@ -110,3 +110,20 @@ A fridge-style family touchscreen for our kitchen. It's built on my laptop, depl
 - Warm, calm and family-friendly. Readable from 2 metres, with large type.
 - Night dimming from about 9pm to 6am.
 - The kids' zone uses the PointPals characters and typography (Zain / Nunito Sans).
+
+---
+
+## Update, 24 Nov 2026
+
+- **New Zealand first.** FamilyWall's Home Hub isn't built for NZ, so this is
+  the Kiwi version: te reo Māori greetings and day names, NZ school terms and
+  public holidays, "sleeps till" countdowns, sun-smart UV tips, bin night, and
+  Snap a notice for school newsletters.
+- **Bench screens first:** iPad and Lenovo Chromebook, then the 24" wall screen.
+- **Habits:** each person picks a habit; the family checks in at dinner
+  (yes / not today + a typed or voice note), with streaks.
+- **Fridge notes:** post-its for each other as text, voice or drawing.
+- **No emergency contacts** (the kids call us on their Garmin Bounce watches).
+- **Calendar:** read via the private iCal link (no Google Cloud setup).
+  Kid-added and snapped events go to parents to send to Google in one tap.
+- See `docs/ARCHITECTURE.md` for how each part connects.
