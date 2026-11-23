@@ -101,6 +101,7 @@ function ParentArea() {
             {!!t.badge && <span className="ml-auto rounded-full bg-coral px-2 text-[1rem] font-black text-white">{t.badge}</span>}
           </button>
         ))}
+        <SyncChip />
         <button
           type="button"
           onClick={() => {
@@ -128,6 +129,32 @@ function ParentArea() {
     </div>
   );
 }
+
+/** Whether what you just typed has reached the family account. */
+function SyncChip() {
+  const household = useAccount((s) => s.household);
+  const sync = useAccount((s) => s.sync);
+  const syncedAt = useAccount((s) => s.syncedAt);
+
+  const [text, tone] = !household
+    ? (["Saved on this screen", "text-ink-3"] as const)
+    : sync === "saving"
+      ? (["Saving…", "text-ink-3"] as const)
+      : sync === "error"
+        ? (["Couldn't save — check the connection", "text-coral-ink"] as const)
+        : sync === "offline"
+          ? (["Offline — saves when you're back", "text-ink-3"] as const)
+          : sync === "saved" && syncedAt
+            ? ([`Saved ${timeAgo(syncedAt)}`, "text-sage-ink"] as const)
+            : (["Changes save as you type", "text-ink-3"] as const);
+
+  return (
+    <p className={cn("px-3 pb-1 text-[1.05rem] font-extrabold", tone)} aria-live="polite">
+      {text}
+    </p>
+  );
+}
+
 
 function H({ children, right }: { children: ReactNode; right?: ReactNode }) {
   return (

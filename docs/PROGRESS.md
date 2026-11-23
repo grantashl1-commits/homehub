@@ -13,6 +13,9 @@
   🤸🏼‍♀️ matches a marker of 🤸‍♀️. Names still match as whole words.
 - An event that matches nobody stays in the Family column; one that matches two
   people shows in both columns. Covered by 7 unit tests.
+- Parent now shows whether an edit has saved, in the sidebar under the tabs:
+  "Saving…" then "Saved 10 seconds ago", or "Saved on this screen" when the
+  device is not signed in to the family account.
 ## 24 Nov 2026: the house guide, on the screen
 
 - Guests used to get a QR code to a PDF. The guest screen's house guide is now
