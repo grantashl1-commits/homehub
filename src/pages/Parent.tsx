@@ -978,7 +978,7 @@ function SettingsTab() {
         <div className="grid grid-cols-2 gap-3">
           <Field label="Wi-Fi name" value={s.wifiName} onChange={(e) => update({ wifiName: e.target.value })} />
           <Field label="Wi-Fi password" value={s.wifiPassword} onChange={(e) => update({ wifiPassword: e.target.value })} />
-          <Field label="Digital guidebook link" value={s.guidebookUrl} onChange={(e) => update({ guidebookUrl: e.target.value })} placeholder="https://" />
+          <Field label="House guide link (web page or PDF)" value={s.guidebookUrl} onChange={(e) => update({ guidebookUrl: e.target.value.trim() })} placeholder="https://…/house-guide.pdf" />
         </div>
         <div className="mt-3 grid grid-cols-2 gap-3">
           {(["checkout", "heating", "appliances", "local"] as const).map((k) => (

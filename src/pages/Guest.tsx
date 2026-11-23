@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { motion } from "motion/react";
-import { Flame, Home, LogOut, MapPin, Refrigerator, Wifi } from "lucide-react";
+import { ExternalLink, Flame, Home, LogOut, MapPin, Refrigerator, Wifi, X } from "lucide-react";
 import { useHub } from "@/lib/store";
 import { useNow } from "@/lib/hooks";
 import { formatDateLong, formatTime } from "@/lib/time";
@@ -19,6 +19,7 @@ export default function Guest() {
   const [guideQr, setGuideQr] = useState<string>();
   const [open, setOpen] = useState<null | keyof typeof s.houseGuide>(null);
   const [exiting, setExiting] = useState(false);
+  const [reading, setReading] = useState(false);
   const hold = useRef<number | undefined>(undefined);
   const w = weather.data ? describeWeather(weather.data.code, weather.data.isDay) : null;
 
@@ -75,12 +76,21 @@ export default function Guest() {
           {s.wifiName && <p className="text-[1.5rem] font-black">{s.wifiName}</p>}
           {s.wifiPassword && <p className="rounded-full bg-paper px-4 py-1 font-mono text-[1.4rem] font-bold">{s.wifiPassword}</p>}
         </motion.div>
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 }} className="flex flex-col items-center justify-center gap-3 rounded-[2rem] bg-[#5f7a64] p-6 text-center text-white shadow-[var(--shadow-soft)]">
+        <motion.button
+          type="button"
+          disabled={!s.guidebookUrl}
+          onClick={() => setReading(true)}
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.06 }}
+          className="tap flex flex-col items-center justify-center gap-3 rounded-[2rem] bg-[#5f7a64] p-6 text-center text-white shadow-[var(--shadow-soft)]"
+        >
           <p className="text-[3rem] leading-none">📖</p>
           <p className="font-display text-[2.4rem] font-black leading-none">House guidebook</p>
           {guideQr ? <img src={guideQr} alt="Scan to open the guidebook" className="w-[13rem] rounded-xl" /> : <div className="grid h-[13rem] w-[13rem] place-items-center rounded-xl bg-white/15 text-[1.2rem] font-bold">Add the link in settings</div>}
-          <p className="text-[1.3rem] font-bold opacity-85">Scan with your phone for everything about the house</p>
-        </motion.div>
+          {s.guidebookUrl && <span className="rounded-full bg-white px-5 py-2 text-[1.4rem] font-black text-[#5f7a64]">Tap to read it here</span>}
+          <p className="text-[1.3rem] font-bold opacity-85">or scan with your phone to take it with you</p>
+        </motion.button>
         <div className="grid grid-cols-2 gap-[1.4rem]">
           {sections.map((sec, i) => (
             <motion.button
@@ -103,6 +113,7 @@ export default function Guest() {
       <Sheet open={!!open} onOpenChange={(o) => !o && setOpen(null)} title={sections.find((x) => x.key === open)?.title ?? ""}>
         <p className="whitespace-pre-line text-[1.6rem] font-bold leading-relaxed">{open ? s.houseGuide[open] : ""}</p>
       </Sheet>
+      {reading && s.guidebookUrl && <GuideReader url={s.guidebookUrl} onClose={() => setReading(false)} />}
       <Sheet open={exiting} onOpenChange={setExiting} title="Owners only" className="w-[min(36rem,94vw)]">
         <PinPad
           reason="Enter the PIN to leave guest mode"
@@ -113,5 +124,38 @@ export default function Guest() {
         />
       </Sheet>
     </div>
+  );
+}
+
+/**
+ * The house guide, full screen on the hub. PDFs and web pages both work. If
+ * the guide's website won't let itself be shown inside another page, guests
+ * can still open it in a new tab or scan the QR code.
+ */
+function GuideReader({ url, onClose }: { url: string; onClose: () => void }) {
+  const isPdf = /\.pdf($|[?#])/i.test(url);
+  const src = isPdf && !url.includes("#") ? `${url}#view=FitH&toolbar=0` : url;
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 flex flex-col bg-[#23263b]/95 p-[1.6rem]"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+    >
+      <div className="mb-3 flex items-center gap-3 text-white">
+        <p className="font-display text-[2.4rem] font-black leading-none">📖 House guidebook</p>
+        <a
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          className="tap ml-auto flex h-[4.8rem] items-center gap-2 rounded-full bg-white/15 px-6 text-[1.4rem] font-black"
+        >
+          <ExternalLink className="size-6" /> Open in a new tab
+        </a>
+        <button type="button" onClick={onClose} className="tap flex h-[4.8rem] items-center gap-2 rounded-full bg-white px-6 text-[1.4rem] font-black text-ink">
+          <X className="size-6" /> Close
+        </button>
+      </div>
+      <iframe title="House guidebook" src={src} className="min-h-0 flex-1 rounded-[1.6rem] bg-white" />
+    </motion.div>
   );
 }
