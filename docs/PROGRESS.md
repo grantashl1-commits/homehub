@@ -81,3 +81,14 @@ Verified at 1180×820 (iPad), 1366×768 (Chromebook) and 1920×1080 (wall).
 - Added `GOOGLE_SERVICE_ACCOUNT_JSON` + `FAMILY_CALENDAR_ID`, with a Google
   Cloud click-by-click walkthrough in SETUP. Calendar reads still use the iCal
   path (Airbnb stays read-only).
+
+## Phase 6 — harden/polish (in progress)
+
+- Added vitest (`npm test`) with 11 passing tests: `isoWeekKey` (matches
+  SIGNAL's week key), SIGNAL shopping-item `itemKey` parity
+  (`parseIngredient`/`toNZName`/`categoriseItem`), and `nz.ts`
+  (`sleepsUntil`, `nzCalendarEvents`, `binReminder`).
+- Rate-limited `/api/snap` (10/min per hub key) on top of the existing ~4MB
+  image cap.
+- Still to do: a `parseIcs` test (needs the pure parser pulled out of
+  `api/calendar.ts`), the guest-only device setup, and a Lighthouse pass.

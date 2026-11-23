@@ -9,6 +9,20 @@ import { json, nzToday, requireHubKey } from "./_shared.js";
 
 const MODEL = process.env.DEEPSEEK_MODEL ?? "deepseek-flash";
 
+/* In-memory per-hub-key rate limit (resets when the function cold-starts). */
+const hits = new Map<string, number[]>();
+const RATE_LIMIT = 10;
+const RATE_WINDOW_MS = 60_000;
+
+function rateLimited(key: string): boolean {
+  const now = Date.now();
+  const recent = (hits.get(key) ?? []).filter((t) => now - t < RATE_WINDOW_MS);
+  if (recent.length >= RATE_LIMIT) return true;
+  recent.push(now);
+  hits.set(key, recent);
+  return false;
+}
+
 interface SnapEvent {
   title: string;
   date: string;
@@ -41,6 +55,9 @@ function clean(e: Partial<SnapEvent>): SnapEvent | null {
 export async function POST(request: Request): Promise<Response> {
   const denied = requireHubKey(request);
   if (denied) return denied;
+  if (rateLimited(request.headers.get("x-hub-key") ?? "")) {
+    return json({ error: "Too many photos right now — try again in a minute." }, 429);
+  }
   const key = process.env.DEEPSEEK_API_KEY;
   if (!key) return json({ error: "DEEPSEEK_API_KEY isn't set on the Vercel project yet." }, 503);
 
