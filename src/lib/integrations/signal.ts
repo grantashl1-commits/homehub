@@ -60,11 +60,13 @@ interface SignalState {
   email?: string;
   list?: ListItem[];
   picks?: Picks;
+  /** SIGNAL library recipe ids the member has hearted (user_saved_recipes). */
+  favourites: string[];
   error?: string;
   busy: boolean;
 }
 
-export const useSignal = create<SignalState>(() => ({ ready: !signalConfigured, busy: false }));
+export const useSignal = create<SignalState>(() => ({ ready: !signalConfigured, busy: false, favourites: [] }));
 
 let started = false;
 export function startSignal() {
@@ -92,13 +94,13 @@ export async function signalSignIn(email: string, password: string) {
 
 export async function signalSignOut() {
   await sb().auth.signOut();
-  useSignal.setState({ userId: undefined, email: undefined, list: undefined, picks: undefined });
+  useSignal.setState({ userId: undefined, email: undefined, list: undefined, picks: undefined, favourites: [] });
 }
 
 export async function refreshSignal() {
   try {
-    const [list, picks] = await Promise.all([fetchList(), fetchPicks()]);
-    useSignal.setState({ list, picks, error: undefined });
+    const [list, picks, favourites] = await Promise.all([fetchList(), fetchPicks(), fetchFavourites()]);
+    useSignal.setState({ list, picks, favourites, error: undefined });
   } catch (e) {
     useSignal.setState({ error: e instanceof Error ? e.message : String(e) });
   }
@@ -245,6 +247,43 @@ export async function signalSetDinner(date: string, recipeId: string) {
   const { error: werr } = await write;
   if (werr) throw werr;
   useSignal.setState({ picks });
+}
+
+/* ── Favourites (user_saved_recipes) ───────────────────────────────────── */
+
+const FAVOURITE_PREFIX = "favourite:";
+
+async function fetchFavourites(): Promise<string[]> {
+  const uid = useSignal.getState().userId;
+  if (!uid) return [];
+  const { data, error } = await sb()
+    .from("user_saved_recipes")
+    .select("recipe_id")
+    .eq("user_id", uid);
+  if (error) throw error;
+  return ((data as { recipe_id: string }[] | null) ?? [])
+    .map((r) => r.recipe_id)
+    .filter((id) => id.startsWith(FAVOURITE_PREFIX))
+    .map((id) => id.slice(FAVOURITE_PREFIX.length));
+}
+
+/** Heart or un-heart a SIGNAL library recipe. Resolves to whether it is now a favourite. */
+export async function signalToggleFavourite(recipeId: string): Promise<boolean> {
+  const uid = useSignal.getState().userId;
+  if (!uid) throw new Error("Connect SIGNAL first.");
+  const isFav = useSignal.getState().favourites.includes(recipeId);
+  const key = FAVOURITE_PREFIX + recipeId;
+  if (isFav) {
+    const { error } = await sb().from("user_saved_recipes").delete().eq("user_id", uid).eq("recipe_id", key);
+    if (error) throw error;
+    useSignal.setState({ favourites: useSignal.getState().favourites.filter((id) => id !== recipeId) });
+  } else {
+    const { error } = await sb().from("user_saved_recipes").insert({ user_id: uid, recipe_id: key });
+    // 23505: already favourited on the server (stale local state) — that's the state we want.
+    if (error && (error as { code?: string }).code !== "23505") throw error;
+    useSignal.setState({ favourites: [...useSignal.getState().favourites, recipeId] });
+  }
+  return !isFav;
 }
 
 /* ── Recipe library ────────────────────────────────────────────────────── */

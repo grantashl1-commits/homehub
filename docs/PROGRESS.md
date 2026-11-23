@@ -43,6 +43,10 @@ Verified at 1180×820 (iPad), 1366×768 (Chromebook) and 1920×1080 (wall).
   `public/data/signal-recipes.json`, filling images via SIGNAL's
   `getRecipeIllustration`. Re-running it restored images to 137 recipes that
   shipped with `image: null`.
+- SIGNAL favourites now sync into the meal swap sheet: `fetchFavourites`/
+  `signalToggleFavourite` read and write `user_saved_recipes` (`"favourite:"`-
+  prefixed `recipe_id`), and the swap sheet sorts favourited meals first with a
+  heart to toggle. (User recipes `user_recipes` still to surface.)
 - Known gap: the hub's list reads only SIGNAL's `custom_items`; SIGNAL's
   meal-plan-derived ingredients aren't persisted, so they don't appear on the
   hub yet.

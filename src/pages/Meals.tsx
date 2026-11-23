@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, Clock, Heart, Plus, Repeat, Search, Users } 
 import { toast } from "sonner";
 import { useHub } from "@/lib/store";
 import { useRecipes, useShoppingList, useWeekMeals, type DayMeal } from "@/lib/hooks";
-import { ingredientName, recipeImage, signalSetDinner, useSignal } from "@/lib/integrations/signal";
+import { ingredientName, recipeImage, signalSetDinner, signalToggleFavourite, useSignal } from "@/lib/integrations/signal";
 import { addDays, dateKey, formatDateShort, formatDay, formatDayShort, startOfWeek } from "@/lib/time";
 import { sfx } from "@/lib/device";
 import type { Recipe } from "@/lib/types";
@@ -267,14 +267,18 @@ function RecipeSheet({ day, onClose }: { day: DayMeal | null; onClose: () => voi
 function SwapSheet({ open, onOpenChange, date }: { open: boolean; onOpenChange: (o: boolean) => void; date: string }) {
   const recipes = useRecipes();
   const signalUser = useSignal((s) => s.userId);
+  const favourites = useSignal((s) => s.favourites);
   const setLocalDinner = useHub((s) => s.setLocalDinner);
   const [q, setQ] = useState("");
+  const favSet = useMemo(() => new Set(favourites), [favourites]);
   const results = useMemo(() => {
     if (!recipes) return [];
     const all = [...recipes.values()].filter((r) => r.category === "meal" && r.image);
     const t = q.trim().toLowerCase();
-    return (t ? all.filter((r) => r.name.toLowerCase().includes(t)) : all).slice(0, 24);
-  }, [recipes, q]);
+    const matched = t ? all.filter((r) => r.name.toLowerCase().includes(t)) : all;
+    const sorted = [...matched].sort((a, b) => (favSet.has(b.id) ? 1 : 0) - (favSet.has(a.id) ? 1 : 0));
+    return sorted.slice(0, 24);
+  }, [recipes, q, favSet]);
 
   const choose = async (r: Recipe) => {
     try {
@@ -285,6 +289,16 @@ function SwapSheet({ open, onOpenChange, date }: { open: boolean; onOpenChange: 
       onOpenChange(false);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Couldn't change the plan");
+    }
+  };
+
+  const toggleFavourite = async (r: Recipe) => {
+    try {
+      const now = await signalToggleFavourite(r.id);
+      sfx.pop();
+      toast.success(now ? "Added to favourites" : "Removed from favourites");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't save that");
     }
   };
 
@@ -301,10 +315,26 @@ function SwapSheet({ open, onOpenChange, date }: { open: boolean; onOpenChange: 
       </div>
       <div className="grid grid-cols-4 gap-3">
         {results.map((r) => (
-          <button key={r.id} type="button" onClick={() => void choose(r)} className="tap overflow-hidden rounded-[1.4rem] bg-white text-left ring-1 ring-black/5">
-            <Photo recipe={r} className="aspect-[4/3] w-full" />
-            <p className="line-clamp-2 px-3 py-2 text-[1.15rem] font-extrabold leading-tight">{r.name}</p>
-          </button>
+          <div key={r.id} className="relative">
+            <button type="button" onClick={() => void choose(r)} className="tap block w-full overflow-hidden rounded-[1.4rem] bg-white text-left ring-1 ring-black/5">
+              <Photo recipe={r} className="aspect-[4/3] w-full" />
+              <p className="line-clamp-2 px-3 py-2 text-[1.15rem] font-extrabold leading-tight">{r.name}</p>
+            </button>
+            {signalUser && (
+              <button
+                type="button"
+                aria-label={favSet.has(r.id) ? "Remove from favourites" : "Add to favourites"}
+                title={favSet.has(r.id) ? "Favourite" : "Add to favourites"}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void toggleFavourite(r);
+                }}
+                className="tap absolute right-2 top-2 grid size-[3.2rem] place-items-center rounded-full bg-white/90 shadow-sm ring-1 ring-black/5"
+              >
+                <Heart className={cn("size-6", favSet.has(r.id) ? "fill-coral text-coral" : "text-ink-3")} />
+              </button>
+            )}
+          </div>
         ))}
       </div>
     </Sheet>
