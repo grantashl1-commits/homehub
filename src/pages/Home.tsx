@@ -100,7 +100,7 @@ function Hero() {
 
       <div className="relative mt-3">
         <p className="mb-1 text-[1.05rem] font-black uppercase tracking-[0.1em] opacity-60">Who's here?</p>
-        <div className="flex gap-2">
+        <div className="flex gap-3.5">
           {members.slice(0, 5).map((m) => (
             <WhoButton key={m.id} member={m} />
           ))}
@@ -150,7 +150,11 @@ function WhoButton({ member }: { member: Member }) {
   const { chores } = useChoresFor(member.role === "child" ? member : undefined);
   const unread = unreadNotesFor(notes, member.id).length;
   const todo = chores.filter((c) => c.state === "todo").length;
-  const badge = unread ? `✉️${unread > 1 ? unread : ""}` : todo || undefined;
+  // One small badge on the ring: new notes win (coral), otherwise jobs waiting (ink).
+  const badge = unread || todo || undefined;
+  const waiting = [unread && `${unread} new note${unread > 1 ? "s" : ""}`, todo && `${todo} job${todo > 1 ? "s" : ""} to do`]
+    .filter(Boolean)
+    .join(", ");
   return (
     <button
       type="button"
@@ -159,9 +163,10 @@ function WhoButton({ member }: { member: Member }) {
         navigate(`/me/${member.id}`);
       }}
       className="tap rounded-full"
-      aria-label={`${member.name}'s zone`}
+      aria-label={`${member.name}'s zone${waiting ? ` — ${waiting}` : ""}`}
+      title={waiting || `${member.name}'s zone`}
     >
-      <Avatar member={member} size={3.7} ring label badge={badge} />
+      <Avatar member={member} size={3.7} ring label badge={badge} tone={unread ? "coral" : "ink"} />
     </button>
   );
 }
