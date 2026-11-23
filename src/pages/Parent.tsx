@@ -1,5 +1,5 @@
 import { useShallow } from "zustand/react/shallow";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 import {
@@ -22,6 +22,7 @@ import { useHub, DEFAULT_MEMBERS } from "@/lib/store";
 import { PALS } from "@/lib/pals";
 import { newSalt, sfx, uid } from "@/lib/device";
 import { saveMedia, resizeImage, deleteMedia, mediaUrl } from "@/lib/media";
+import { buildBackup, restoreBackup, saveBackupFile } from "@/lib/backup";
 import { DAY_PART_TIMES, formatDateShort, fromDateKey, relativeDayLabel, timeAgo } from "@/lib/time";
 import type { Claim, KidPlan, Member } from "@/lib/types";
 import { pointpalsAward, pointpalsConfigured, pointpalsSignIn, pointpalsSignOut, usePointPals } from "@/lib/integrations/pointpals";
@@ -849,6 +850,39 @@ function SettingsTab() {
   const update = useHub((x) => x.updateSettings);
   const [pin, setPin] = useState("");
   const [pin2, setPin2] = useState("");
+  const [busyBackup, setBusyBackup] = useState(false);
+  const backupInput = useRef<HTMLInputElement>(null);
+
+  const saveBackup = async () => {
+    setBusyBackup(true);
+    try {
+      const { blob, fileName, summary } = await buildBackup();
+      saveBackupFile(blob, fileName);
+      const size = `${Math.max(1, Math.round(summary.bytes / 1024))} KB`;
+      toast.success(
+        `Backup saved (${size}): ${summary.members} people, ${summary.notes} notes${summary.skipped ? `, ${summary.skipped} large media left out` : ""}`,
+      );
+      sfx.success();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't build the backup");
+    } finally {
+      setBusyBackup(false);
+    }
+  };
+
+  const restoreFrom = async (file: File) => {
+    if (!window.confirm(`Restore “${file.name}”? It replaces this screen's family, notes and settings.`)) return;
+    setBusyBackup(true);
+    try {
+      const summary = await restoreBackup(file);
+      toast.success(`Restored ${summary.members} people and ${summary.notes} notes. Reloading…`);
+      window.setTimeout(() => window.location.reload(), 900);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't restore that file");
+    } finally {
+      setBusyBackup(false);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-5">
@@ -948,6 +982,33 @@ function SettingsTab() {
         <BigButton tone="sage" size="lg" className="mt-4" onClick={() => update({ guestMode: true })}>
           Turn on guest mode
         </BigButton>
+      </div>
+
+      <div className="rounded-[1.8rem] bg-sky-tint p-5">
+        <p className="font-display text-[2rem] font-black">Backup 💾</p>
+        <p className="mb-3 text-[1.2rem] font-bold text-ink-2">
+          Family, profile photos, notes, habits and settings in one file — for moving to a new web address or a new screen.
+          The hub key stays out of it, so enter that again in Connections.
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <BigButton tone="sky" size="md" disabled={busyBackup} onClick={() => void saveBackup()}>
+            {busyBackup ? "Packing…" : "Save a backup"}
+          </BigButton>
+          <BigButton tone="white" size="md" disabled={busyBackup} onClick={() => backupInput.current?.click()}>
+            Restore from a file
+          </BigButton>
+          <input
+            ref={backupInput}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (file) void restoreFrom(file);
+            }}
+          />
+        </div>
       </div>
 
       <div className="rounded-[1.8rem] bg-coral-tint p-5">
