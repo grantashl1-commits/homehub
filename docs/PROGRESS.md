@@ -1,5 +1,14 @@
 # Progress
 
+## 24 Nov 2026: a way back out of guest mode
+
+- Guest mode's only exit was an invisible 6 rem button in the top-left corner
+  that needed a 1.6-second hold. Nothing on the screen said so, so an owner who
+  turned it on had no visible way back.
+- There's now a discreet **Owners** chip in the bottom-right that asks for the
+  parent PIN. The long-press still works for anyone who knows it.
+- With no PIN set, the chip leaves guest mode directly: there is nothing to
+  prove, and an owner must never be locked out of their own screen.
 ## 24 Nov 2026: backup and restore
 
 - **Parent → Settings → Backup**: "Save a backup" downloads one JSON file with
