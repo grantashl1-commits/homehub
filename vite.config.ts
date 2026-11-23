@@ -89,6 +89,17 @@ export default defineConfig(({ mode }) => {
               options: { cacheName: "signal-recipes", expiration: { maxEntries: 150, maxAgeSeconds: 60 * 60 * 24 * 30 } },
             },
             {
+              // House guide photos (booking site's media bucket and the places'
+              // own sites), so the guest guide still shows them offline.
+              urlPattern: ({ request, sameOrigin }) => request.destination === "image" && !sameOrigin,
+              handler: "CacheFirst",
+              options: {
+                cacheName: "guide-photos",
+                expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 60 },
+                cacheableResponse: { statuses: [0, 200] },
+              },
+            },
+            {
               urlPattern: /^https:\/\/api\.open-meteo\.com\//,
               handler: "NetworkFirst",
               options: { cacheName: "weather", networkTimeoutSeconds: 5 },
