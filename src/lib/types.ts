@@ -50,6 +50,8 @@ export interface Habit {
   frequency: HabitFrequency;
   startDate: string;
   active: boolean;
+  /** SIGNAL library habit id, when this habit came from SIGNAL (Mum). */
+  signalHabitId?: string;
 }
 
 export type CheckInStatus = "done" | "not_today";

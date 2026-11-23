@@ -47,10 +47,12 @@ npm install
 npm run dev                  # the /api functions also run under Vite
 ```
 
-The SIGNAL recipe library ships as a static export at
-`public/data/signal-recipes.json`. Rebuild it from the SIGNAL repo when its
-recipes change (check out `../signalnz` next to this repo first):
+The SIGNAL recipe and habit libraries ship as static exports at
+`public/data/signal-recipes.json` and `public/data/signal-habits.json`.
+Rebuild them from the SIGNAL repo when its data changes (check out
+`../signalnz` next to this repo first):
 
 ```bash
 npm run sync:recipes
+npm run sync:habits
 ```

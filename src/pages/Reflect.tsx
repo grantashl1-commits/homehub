@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { ArrowRight, Keyboard, Mic, X } from "lucide-react";
 import confetti from "canvas-confetti";
 import { useHub, activeHabit, familyStreak, habitStreak } from "@/lib/store";
+import { signalSetHabitDone, useSignal } from "@/lib/integrations/signal";
 import { HABIT_PRESETS } from "@/lib/catalog";
 import { pal } from "@/lib/pals";
 import { dateKey, fromDateKey } from "@/lib/time";
@@ -57,6 +58,10 @@ export default function Reflect() {
     if (!person || !habit || busy) return;
     setBusy(true);
     checkIn({ habitId: habit.id, memberId: person.id, status: "done" });
+    // Mum's SIGNAL habit also records its completion in SIGNAL (habit_completions).
+    if (habit.signalHabitId && useSignal.getState().userId) {
+      void signalSetHabitDone(habit.signalHabitId, today, true).catch(() => {});
+    }
     sfx.success();
     if (!reducedMotion) void confetti({ particleCount: 90, spread: 80, origin: { y: 0.7 }, colors: [pal(person.palId).color, "#F6C64E", "#EE7B5B"], scalar: 1.2 });
     window.setTimeout(advance, 1200);

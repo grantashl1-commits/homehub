@@ -13,7 +13,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { create } from "zustand";
 import type { ListItem, Recipe } from "../types";
 import { categoriseItem, parseIngredient, parseQty, toNZName } from "../signal-parity";
-import { isoWeekKey } from "../time";
+import { dateKey, isoWeekKey } from "../time";
 
 const URL = import.meta.env.VITE_SIGNAL_SUPABASE_URL as string | undefined;
 const KEY = import.meta.env.VITE_SIGNAL_SUPABASE_KEY as string | undefined;
@@ -62,11 +62,13 @@ interface SignalState {
   picks?: Picks;
   /** SIGNAL library recipe ids the member has hearted (user_saved_recipes). */
   favourites: string[];
+  /** SIGNAL habit ids completed today (habit_completions). */
+  todayDone: string[];
   error?: string;
   busy: boolean;
 }
 
-export const useSignal = create<SignalState>(() => ({ ready: !signalConfigured, busy: false, favourites: [] }));
+export const useSignal = create<SignalState>(() => ({ ready: !signalConfigured, busy: false, favourites: [], todayDone: [] }));
 
 let started = false;
 export function startSignal() {
@@ -94,13 +96,13 @@ export async function signalSignIn(email: string, password: string) {
 
 export async function signalSignOut() {
   await sb().auth.signOut();
-  useSignal.setState({ userId: undefined, email: undefined, list: undefined, picks: undefined, favourites: [] });
+  useSignal.setState({ userId: undefined, email: undefined, list: undefined, picks: undefined, favourites: [], todayDone: [] });
 }
 
 export async function refreshSignal() {
   try {
-    const [list, picks, favourites] = await Promise.all([fetchList(), fetchPicks(), fetchFavourites()]);
-    useSignal.setState({ list, picks, favourites, error: undefined });
+    const [list, picks, favourites, todayDone] = await Promise.all([fetchList(), fetchPicks(), fetchFavourites(), fetchHabitCompletions()]);
+    useSignal.setState({ list, picks, favourites, todayDone, error: undefined });
   } catch (e) {
     useSignal.setState({ error: e instanceof Error ? e.message : String(e) });
   }
@@ -286,6 +288,39 @@ export async function signalToggleFavourite(recipeId: string): Promise<boolean> 
   return !isFav;
 }
 
+/* ── Habits (habit_completions) ────────────────────────────────────────── */
+
+async function fetchHabitCompletions(): Promise<string[]> {
+  const uid = useSignal.getState().userId;
+  if (!uid) return [];
+  const { data, error } = await sb()
+    .from("habit_completions")
+    .select("habit_id")
+    .eq("user_id", uid)
+    .eq("completed_date", dateKey());
+  if (error) throw error;
+  return ((data as { habit_id: string }[] | null) ?? []).map((r) => r.habit_id);
+}
+
+/** Mark a SIGNAL habit done (or undo) for a local date, exactly as SIGNAL does. */
+export async function signalSetHabitDone(habitId: string, date: string, done: boolean): Promise<void> {
+  const uid = useSignal.getState().userId;
+  if (!uid) throw new Error("Connect SIGNAL first.");
+  if (done) {
+    const { error } = await sb()
+      .from("habit_completions")
+      .upsert(
+        { user_id: uid, habit_id: habitId, completed_date: date, completed_at: new Date().toISOString() },
+        { onConflict: "user_id,habit_id,completed_date" },
+      );
+    if (error) throw error;
+  } else {
+    const { error } = await sb().from("habit_completions").delete().eq("user_id", uid).eq("habit_id", habitId).eq("completed_date", date);
+    if (error) throw error;
+  }
+  useSignal.setState((s) => ({ todayDone: done ? [...new Set([...s.todayDone, habitId])] : s.todayDone.filter((id) => id !== habitId) }));
+}
+
 /* ── Recipe library ────────────────────────────────────────────────────── */
 
 let recipesPromise: Promise<Map<string, Recipe>> | null = null;
@@ -304,6 +339,34 @@ export function loadRecipes(): Promise<Map<string, Recipe>> {
 export function recipeImage(r: Recipe | undefined | null): string | undefined {
   if (!r?.image) return undefined;
   return r.image.startsWith("http") ? r.image : `${SIGNAL_SITE}${r.image}`;
+}
+
+/* ── Habit library (static export) ────────────────────────────────────── */
+
+export interface SignalHabit {
+  id: string;
+  name: string;
+  icon: string;
+  category: string;
+  frequency: string;
+  art: string | null;
+}
+
+let habitsPromise: Promise<SignalHabit[]> | null = null;
+
+export function loadSignalHabits(): Promise<SignalHabit[]> {
+  habitsPromise ??= fetch("/data/signal-habits.json")
+    .then((r) => r.json() as Promise<SignalHabit[]>)
+    .catch((e) => {
+      habitsPromise = null;
+      throw e;
+    });
+  return habitsPromise;
+}
+
+export function habitArt(h: SignalHabit | null | undefined): string | undefined {
+  if (!h?.art) return undefined;
+  return h.art.startsWith("http") ? h.art : `${SIGNAL_SITE}${h.art}`;
 }
 
 /** Strip quantities so "250g chicken thighs, diced" becomes "chicken thighs". */

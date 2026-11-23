@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "motion/react";
 import { useHub, activeHabit, habitStreak } from "@/lib/store";
+import { habitArt, loadSignalHabits, useSignal, type SignalHabit } from "@/lib/integrations/signal";
 import { HABIT_PRESETS } from "@/lib/catalog";
 import { pal } from "@/lib/pals";
 import { addDays, dateKey, formatDayShort, startOfWeek } from "@/lib/time";
@@ -23,19 +24,33 @@ export default function Habits() {
   const setHabit = useHub((s) => s.setHabit);
   const member = members.find((m) => m.id === id) ?? members[0];
   const habit = member ? activeHabit(habits, member.id) : undefined;
+  const signalUser = useSignal((s) => s.userId);
+  const [signalHabits, setSignalHabits] = useState<SignalHabit[]>([]);
   const [freq, setFreq] = useState<Freq>("daily");
   const [custom, setCustom] = useState("");
+  useEffect(() => {
+    let live = true;
+    loadSignalHabits()
+      .then((h) => live && setSignalHabits(h))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
   if (!member) return null;
   const p = pal(member.palId);
   const week = Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(), i));
   const streak = habit ? habitStreak(checkins, habit.id) : 0;
   const presets = HABIT_PRESETS.filter((h) => h.forKids === (member.role === "child"));
+  // Mum is the first parent member; when SIGNAL is linked her options come from SIGNAL's library.
+  const firstParent = members.find((m) => m.role === "parent");
+  const isSignalMember = !!signalUser && member.role === "parent" && member.id === firstParent?.id;
 
   const frequency = (): HabitFrequency =>
     freq === "daily" ? { kind: "daily" } : freq === "weekdays" ? { kind: "weekdays" } : { kind: "perWeek", times: 3 };
 
-  const choose = (title: string, icon: string) => {
-    setHabit(member.id, { title, icon, frequency: frequency() });
+  const choose = (title: string, icon: string, signalHabitId?: string) => {
+    setHabit(member.id, { title, icon, frequency: frequency(), ...(signalHabitId ? { signalHabitId } : {}) });
     celebrate({ title: "New habit!", subtitle: title, palId: member.palId, photo: member.photo });
   };
 
@@ -119,23 +134,41 @@ export default function Habits() {
           />
         </div>
         <div className="grid min-h-0 flex-1 grid-cols-3 gap-3 overflow-y-auto no-scrollbar">
-          {presets.map((h) => (
-            <button
-              key={h.title}
-              type="button"
-              onClick={() => {
-                sfx.pop();
-                choose(h.title, h.icon);
-              }}
-              className={cn(
-                "tap flex flex-col items-center justify-center gap-2 rounded-[1.6rem] p-3 text-center ring-1 ring-black/5",
-                habit?.title === h.title ? "bg-sage-tint ring-[0.25rem] ring-sage" : "bg-paper",
-              )}
-            >
-              <ChoreIcon icon={h.icon} size={4.8} />
-              <span className="text-[1.25rem] font-extrabold leading-tight">{h.title}</span>
-            </button>
-          ))}
+          {isSignalMember
+            ? signalHabits.map((h) => (
+                <button
+                  key={h.id}
+                  type="button"
+                  onClick={() => {
+                    sfx.pop();
+                    choose(h.name, h.icon, h.id);
+                  }}
+                  className={cn(
+                    "tap flex flex-col items-center justify-center gap-2 rounded-[1.6rem] p-3 text-center ring-1 ring-black/5",
+                    habit?.title === h.name ? "bg-sage-tint ring-[0.25rem] ring-sage" : "bg-paper",
+                  )}
+                >
+                  <HabitArt art={habitArt(h)} name={h.name} size={4.8} />
+                  <span className="text-[1.25rem] font-extrabold leading-tight">{h.name}</span>
+                </button>
+              ))
+            : presets.map((h) => (
+                <button
+                  key={h.title}
+                  type="button"
+                  onClick={() => {
+                    sfx.pop();
+                    choose(h.title, h.icon);
+                  }}
+                  className={cn(
+                    "tap flex flex-col items-center justify-center gap-2 rounded-[1.6rem] p-3 text-center ring-1 ring-black/5",
+                    habit?.title === h.title ? "bg-sage-tint ring-[0.25rem] ring-sage" : "bg-paper",
+                  )}
+                >
+                  <ChoreIcon icon={h.icon} size={4.8} />
+                  <span className="text-[1.25rem] font-extrabold leading-tight">{h.title}</span>
+                </button>
+              ))}
         </div>
         {member.role === "parent" && (
           <div className="mt-4 flex gap-3">
@@ -159,5 +192,27 @@ export default function Habits() {
         )}
       </section>
     </div>
+  );
+}
+
+/** SIGNAL habit illustration, or a sprout placeholder when it has none. */
+function HabitArt({ art, name, size }: { art?: string; name: string; size: number }) {
+  const [failed, setFailed] = useState(false);
+  if (art && !failed) {
+    return (
+      <img
+        src={art}
+        alt={name}
+        draggable={false}
+        onError={() => setFailed(true)}
+        className="pointer-events-none object-contain"
+        style={{ width: `${size}rem`, height: `${size}rem` }}
+      />
+    );
+  }
+  return (
+    <span className="grid place-items-center text-ink-3" style={{ width: `${size}rem`, height: `${size}rem`, fontSize: `${size * 0.6}rem` }}>
+      🌱
+    </span>
   );
 }

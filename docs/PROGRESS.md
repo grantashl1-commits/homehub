@@ -50,3 +50,16 @@ Verified at 1180×820 (iPad), 1366×768 (Chromebook) and 1920×1080 (wall).
 - Known gap: the hub's list reads only SIGNAL's `custom_items`; SIGNAL's
   meal-plan-derived ingredients aren't persisted, so they don't appear on the
   hub yet.
+
+## Phase 3 — SIGNAL habits (in progress)
+
+- Added `npm run sync:habits` (`scripts/sync-habits.mjs`): esbuild-bundles
+  SIGNAL's `habit-library.ts` + `habit-art.ts` and rebuilds
+  `public/data/signal-habits.json` (77 habits with illustration paths).
+- Mum's habits now sync to SIGNAL: `signalSetHabitDone` writes
+  `habit_completions` (local date, upsert on conflict) and
+  `fetchHabitCompletions` reads today's ticks. When SIGNAL is linked, the
+  habit picker shows SIGNAL's library to the first parent member, and a
+  "Yes!" at dinnertime reflection records the completion in SIGNAL.
+- Known simplification: Mum is identified as the first parent member; kids/Dad
+  presets still to be expanded from SIGNAL's library.
