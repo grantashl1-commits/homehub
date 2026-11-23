@@ -43,7 +43,7 @@ A fridge-style family touchscreen for our kitchen. It's built on my laptop, depl
    - the list data lives in SIGNAL (signal.mindcast.co.nz, own repo and Supabase). SIGNAL needs new endpoints and a household-shared list.
 5. **Calendar**
    - **Family calendar:** matt.ash.carlson@gmail.com (school events, family holidays).
-   - **Airbnb bookings and cleaning calendar:** lives on grantashl1@gmail.com. Show check-ins and cleans in their own colour.
+   - **Airbnb bookings and cleaning calendar:** lives on guest@carlsonproperties.co.nz. Show check-ins and cleans in their own colour.
    - **Kids calendar (new):** created under the family account. Kid-added events go here.
 6. **Household admin (Notion)**
    - expenses, purchases and life admin, kept in a Notion workspace (still to be built)

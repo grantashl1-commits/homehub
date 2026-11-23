@@ -13,7 +13,7 @@ Code with the Vercel CLI linked you can also run `vercel env add NAME`.
 |---|---|---|
 | `HUB_ACCESS_KEY` | A long random password the screens use to call the hub's own functions | Run `openssl rand -hex 24`. Enter the same value on each screen in **Parent → Connections** |
 | `FAMILY_ICAL_URL` | The family Google Calendar, read-only | Google Calendar → ⚙ → the family calendar → *Integrate calendar* → **Secret address in iCal format** |
-| `BOOKINGS_ICAL_URL` (optional) | Airbnb bookings and cleans | Same, on the bookings calendar (grantashl1@gmail.com) |
+| `BOOKINGS_ICAL_URL` (optional) | Airbnb bookings and cleans | Same, on the bookings calendar (guest@carlsonproperties.co.nz) |
 | `KIDS_ICAL_URL` (optional) | A kids' calendar | Same |
 | `NOTION_TOKEN` | Money and To-dos from the Notion "Home Hub" page | notion.so/profile/integrations → New internal integration "Home Hub" → copy the secret. Then on the Home Hub page: ••• → Connections → add Home Hub |
 | `ANTHROPIC_API_KEY` | "Snap a notice": reads school newsletters into events | console.anthropic.com → API keys |
