@@ -64,3 +64,9 @@ Verified at 1180×820 (iPad), 1366×768 (Chromebook) and 1920×1080 (wall).
   app shows as done on the hub (reflection header + habit week strip).
 - Known simplification: Mum is identified as the first parent member; kids/Dad
   presets still to be expanded from SIGNAL's library (a curation task).
+
+## Snap a notice: switched to DeepSeek
+
+- `/api/snap` now calls DeepSeek's vision model (`deepseek-flash`) instead of
+  Anthropic. Env var is `DEEPSEEK_API_KEY` (optional `DEEPSEEK_MODEL`, default
+  `deepseek-flash`).

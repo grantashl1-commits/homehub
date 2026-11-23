@@ -1,13 +1,13 @@
 /**
  * POST /api/snap  { image: base64 JPEG, today: "YYYY-MM-DD" }
  * Reads a photo of a school newsletter, party invite or sports draw and
- * returns the dated events on it, using Claude's vision. Needs
- * ANTHROPIC_API_KEY (and optionally ANTHROPIC_MODEL) on the Vercel project,
+ * returns the dated events on it, using DeepSeek's vision. Needs
+ * DEEPSEEK_API_KEY (and optionally DEEPSEEK_MODEL) on the Vercel project,
  * plus the x-hub-key header.
  */
 import { json, nzToday, requireHubKey } from "./_shared.js";
 
-const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-haiku-5-5";
+const MODEL = process.env.DEEPSEEK_MODEL ?? "deepseek-flash";
 
 interface SnapEvent {
   title: string;
@@ -41,8 +41,8 @@ function clean(e: Partial<SnapEvent>): SnapEvent | null {
 export async function POST(request: Request): Promise<Response> {
   const denied = requireHubKey(request);
   if (denied) return denied;
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) return json({ error: "ANTHROPIC_API_KEY isn't set on the Vercel project yet." }, 503);
+  const key = process.env.DEEPSEEK_API_KEY;
+  if (!key) return json({ error: "DEEPSEEK_API_KEY isn't set on the Vercel project yet." }, 503);
 
   let body: { image?: string; mediaType?: string; today?: string };
   try {
@@ -55,21 +55,19 @@ export async function POST(request: Request): Promise<Response> {
   const mediaType = ["image/jpeg", "image/png", "image/webp"].includes(body.mediaType ?? "") ? body.mediaType! : "image/jpeg";
   const today = /^\d{4}-\d{2}-\d{2}$/.test(body.today ?? "") ? body.today! : nzToday();
 
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+  const res = await fetch("https://api.deepseek.com/chat/completions", {
     method: "POST",
     headers: {
-      "x-api-key": key,
-      "anthropic-version": "2023-06-01",
+      authorization: `Bearer ${key}`,
       "content-type": "application/json",
     },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 1500,
       messages: [
         {
           role: "user",
           content: [
-            { type: "image", source: { type: "base64", media_type: mediaType, data: image } },
+            { type: "image_url", image_url: { url: `data:${mediaType};base64,${image}` } },
             { type: "text", text: PROMPT(today) },
           ],
         },
@@ -77,12 +75,12 @@ export async function POST(request: Request): Promise<Response> {
     }),
   });
   const data = (await res.json().catch(() => ({}))) as {
-    content?: { type: string; text?: string }[];
+    choices?: { message?: { content?: string } }[];
     error?: { message?: string };
   };
   if (!res.ok) return json({ error: data.error?.message ?? `The reader said ${res.status}` }, 502);
 
-  const text = (data.content ?? []).filter((c) => c.type === "text").map((c) => c.text ?? "").join("");
+  const text = data.choices?.[0]?.message?.content ?? "";
   const match = text.match(/\{[\s\S]*\}/);
   try {
     const parsed = JSON.parse(match ? match[0] : text) as { events?: Partial<SnapEvent>[] };

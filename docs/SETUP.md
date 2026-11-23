@@ -16,7 +16,7 @@ Code with the Vercel CLI linked you can also run `vercel env add NAME`.
 | `BOOKINGS_ICAL_URL` (optional) | Airbnb bookings and cleans | Same, on the bookings calendar (grantashl1@gmail.com) |
 | `KIDS_ICAL_URL` (optional) | A kids' calendar | Same |
 | `NOTION_TOKEN` | Money and To-dos from the Notion "Home Hub" page | notion.so/profile/integrations → New internal integration "Home Hub" → copy the secret. Then on the Home Hub page: ••• → Connections → add Home Hub |
-| `ANTHROPIC_API_KEY` | "Snap a notice": reads school newsletters into events | console.anthropic.com → API keys |
+| `DEEPSEEK_API_KEY` | "Snap a notice": reads school newsletters into events | platform.deepseek.com → API keys |
 | `VITE_SIGNAL_SUPABASE_URL`, `VITE_SIGNAL_SUPABASE_KEY` | SIGNAL shopping list and meal plan | `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` from the signalnz project |
 | `VITE_SIGNAL_SITE_URL` | Where SIGNAL's recipe photos live | `https://signal.mindcast.co.nz` |
 | `VITE_POINTPALS_SUPABASE_URL`, `VITE_POINTPALS_SUPABASE_KEY` | PointPals jobs, marbles and jars | `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` from the point-pals-app project |

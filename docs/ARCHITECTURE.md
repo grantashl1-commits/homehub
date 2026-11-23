@@ -17,7 +17,7 @@
 | Kids, chores, marbles, jars | PointPals | Signs into PointPals' Supabase as a parent. Reads `households`, `kids`, `chores`, today's `point_events`; listens to realtime changes. Approving a claim awards points exactly like PointPals' `awardPoints` (point_events row + kid totals + family jar, respecting split jars). |
 | Family calendar | Google | `/api/calendar` (Vercel function) reads the private iCal links from env vars, expands recurring events with `ical.js`, and returns JSON. |
 | Money, life admin | Notion "Home Hub" page | `/api/notion` reads Expenses / Bills / Life Admin (Notion API 2025-09-03 data sources) and writes quick-add expenses, paid bills and done tasks. |
-| Snap a notice | Claude | `/api/snap` sends a photo to the Anthropic Messages API and gets back dated events. |
+| Snap a notice | DeepSeek | `/api/snap` sends a photo to the DeepSeek chat API (`deepseek-flash`) and gets back dated events. |
 | Weather + UV | Open-Meteo | Direct from the browser, no key. |
 | NZ terms & holidays | Built in | `src/lib/nz.ts` (Ministry of Education + Employment NZ dates, 2026–27). |
 
@@ -25,7 +25,7 @@
 
 - Every `/api/*` function requires the `x-hub-key` header to match
   `HUB_ACCESS_KEY` (constant-time compare) and answers `Cache-Control: private, no-store`.
-- The private calendar link, Notion token and Anthropic key never reach the browser.
+- The private calendar link, Notion token and DeepSeek key never reach the browser.
 - SIGNAL and PointPals sessions are normal Supabase logins under those apps' RLS.
 - Parent PIN: PBKDF2 (120k iterations) hash on the device, 2-minute unlock,
   5-minute lockout after 5 wrong tries.

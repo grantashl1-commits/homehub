@@ -421,7 +421,7 @@ function blobToBase64(b: Blob): Promise<string> {
   });
 }
 
-/** Photograph a school newsletter or invite; Claude reads the dates off it. */
+/** Photograph a school newsletter or invite; DeepSeek reads the dates off it. */
 function SnapSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const members = useHub((s) => s.members);
   const addKidPlan = useHub((s) => s.addKidPlan);
