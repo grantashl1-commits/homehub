@@ -1,15 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="96" fill="#0f172a" />
-  <text
-    x="50%"
-    y="50%"
-    fill="#fafaf9"
-    font-family="system-ui, sans-serif"
-    font-size="200"
-    font-weight="700"
-    text-anchor="middle"
-    dominant-baseline="central"
-  >
-    HH
-  </text>
+  <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6a96b"/><stop offset="1" stop-color="#ee7b5b"/></linearGradient></defs>
+  <rect width="512" height="512" rx="118" fill="url(#g)"/>
+  <circle cx="374" cy="128" r="56" fill="#ffe48c"/>
+  <path d="M102 256 L256 123 L410 256 Z" fill="#fffbf4"/>
+  <rect x="138" y="236" width="236" height="174" rx="26" fill="#fffbf4"/>
+  <path d="M256 368 C214 340 210 306 232 296 C246 290 256 300 256 308 C256 300 266 290 280 296 C302 306 298 340 256 368 Z" fill="#ee7b5b"/>
 </svg>
