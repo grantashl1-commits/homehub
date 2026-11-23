@@ -18,3 +18,11 @@ Built the whole app in one pass:
   to-dos, photos, connections, settings), guest mode, screensaver, night clock.
 
 Verified at 1180×820 (iPad), 1366×768 (Chromebook) and 1920×1080 (wall).
+
+## 24 Nov 2026: profile photos
+
+- Anyone can use their own photo instead of a character: tap the camera on
+  their picture in setup or Parent → Family. The photo shows everywhere
+  their character did (home, Me, calendar, reflection, celebrations).
+- Photos are cropped square and shrunk to about 8KB, stored on the screen
+  with the rest of the family settings. Picking a character switches back.

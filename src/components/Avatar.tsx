@@ -14,11 +14,14 @@ interface Props {
   float?: boolean;
   label?: boolean;
   dim?: boolean;
+  /** A photo to show instead of the character (defaults to the member's own). */
+  photo?: string;
 }
 
-/** A PointPals character in a soft coloured circle. Size is in rem. */
-export function Avatar({ member, palId, size = 4, className, ring, badge, float, label, dim }: Props) {
+/** A PointPals character (or the person's own photo) in a soft coloured circle. Size is in rem. */
+export function Avatar({ member, palId, size = 4, className, ring, badge, float, label, dim, photo }: Props) {
   const p = pal(member?.palId ?? palId);
+  const src = photo ?? member?.photo;
   const [failed, setFailed] = useState(false);
   return (
     <div className={cn("relative inline-flex flex-col items-center", className)}>
@@ -34,6 +37,14 @@ export function Avatar({ member, palId, size = 4, className, ring, badge, float,
           background: `radial-gradient(circle at 35% 30%, #fff 0%, ${p.tint} 45%, ${p.color} 100%)`,
         }}
       >
+        {src ? (
+          <img
+            src={src}
+            alt=""
+            draggable={false}
+            className="pointer-events-none absolute left-[7%] top-[7%] h-[86%] w-[86%] rounded-full object-cover"
+          />
+        ) : (
         <motion.div
           className="absolute inset-0 grid place-items-center"
           animate={float ? { y: [0, -size * 1.2, 0] } : undefined}
@@ -52,6 +63,7 @@ export function Avatar({ member, palId, size = 4, className, ring, badge, float,
             />
           )}
         </motion.div>
+        )}
         {badge !== undefined && badge !== 0 && (
           <span
             className="absolute -top-1 -right-1 grid min-w-[1.9rem] place-items-center rounded-full bg-coral px-2 text-[1.1rem] font-black leading-[1.9rem] text-white ring-[0.2rem] ring-white"

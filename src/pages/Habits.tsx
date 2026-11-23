@@ -36,7 +36,7 @@ export default function Habits() {
 
   const choose = (title: string, icon: string) => {
     setHabit(member.id, { title, icon, frequency: frequency() });
-    celebrate({ title: "New habit!", subtitle: title, palId: member.palId });
+    celebrate({ title: "New habit!", subtitle: title, palId: member.palId, photo: member.photo });
   };
 
   return (

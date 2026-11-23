@@ -194,7 +194,7 @@ function Jobs({ member }: { member: Member }) {
       source,
     });
     const teReo = useHub.getState().settings.teReo;
-    celebrate({ title: teReo ? `${praise()} You did it!` : "You did it!", subtitle: "Mum or Dad will pop your marble in the jar", palId: member.palId });
+    celebrate({ title: teReo ? `${praise()} You did it!` : "You did it!", subtitle: "Mum or Dad will pop your marble in the jar", palId: member.palId, photo: member.photo });
   };
 
   return (

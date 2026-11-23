@@ -11,6 +11,7 @@ interface Party {
   title: string;
   subtitle?: string;
   palId?: string;
+  photo?: string;
   emoji?: string;
 }
 
@@ -61,7 +62,7 @@ export function CelebrationLayer() {
           >
             <motion.div animate={{ y: [0, -22, 0, -10, 0], rotate: [0, -6, 6, -3, 0] }} transition={{ duration: 0.9 }}>
               {party.palId ? (
-                <Avatar palId={party.palId} size={9} />
+                <Avatar palId={party.palId} photo={party.photo} size={9} />
               ) : (
                 <span className="text-[7rem] leading-none">{party.emoji ?? "🎉"}</span>
               )}

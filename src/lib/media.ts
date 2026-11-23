@@ -64,3 +64,22 @@ export async function resizeImage(file: File, maxSide = 1920): Promise<Blob> {
     canvas.toBlob((b) => resolve(b ?? file), "image/jpeg", 0.86),
   );
 }
+
+/**
+ * Turns a camera or library photo into a small square profile picture
+ * (about 25KB), cropped from the middle with a little headroom for faces.
+ */
+export async function profilePhoto(file: File, side = 320): Promise<string> {
+  const bitmap = await createImageBitmap(file);
+  const s = Math.min(bitmap.width, bitmap.height);
+  const sx = (bitmap.width - s) / 2;
+  const sy = (bitmap.height - s) * 0.3;
+  const canvas = document.createElement("canvas");
+  canvas.width = side;
+  canvas.height = side;
+  const ctx = canvas.getContext("2d")!;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(bitmap, sx, sy, s, s, 0, 0, side, side);
+  bitmap.close();
+  return canvas.toDataURL("image/jpeg", 0.82);
+}

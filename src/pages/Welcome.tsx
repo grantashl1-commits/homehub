@@ -8,6 +8,7 @@ import type { Member } from "@/lib/types";
 import { Avatar } from "@/components/Avatar";
 import { BigButton, Field } from "@/components/ui";
 import { makePinHash } from "@/components/PinPad";
+import { PhotoAvatarButton } from "@/components/PhotoPicker";
 import { cn } from "@/lib/utils";
 
 /** First run: name the family, add everyone, choose a parent PIN. */
@@ -48,7 +49,8 @@ export default function Welcome() {
 
         {step === 1 && (
           <motion.div key="1" className="card mt-[6rem] w-[min(64rem,94vw)] p-8" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-            <h2 className="mb-5 font-display text-[3.2rem] font-black leading-none">Who lives here?</h2>
+            <h2 className="font-display text-[3.2rem] font-black leading-none">Who lives here?</h2>
+            <p className="mb-5 mt-2 text-[1.3rem] font-bold text-ink-2">Pick a character for everyone, or tap the camera to use your own photo.</p>
             <Field label="Family name" value={s.familyName} onChange={(e) => updateSettings({ familyName: e.target.value })} placeholder="The Carlsons" />
             <div className="mt-5 flex max-h-[24rem] flex-col gap-3 overflow-y-auto pr-1">
               {members.map((m) => (
@@ -93,7 +95,7 @@ export default function Welcome() {
 function MemberRow({ member, onChange, onRemove }: { member: Member; onChange: (p: Partial<Member>) => void; onRemove: () => void }) {
   return (
     <div className="flex items-center gap-3 rounded-[1.5rem] bg-paper p-3">
-      <Avatar member={member} size={4.4} />
+      <PhotoAvatarButton member={member} size={4.4} onPhoto={(photo) => onChange({ photo })} />
       <input
         value={member.name}
         onChange={(e) => onChange({ name: e.target.value })}
@@ -109,7 +111,7 @@ function MemberRow({ member, onChange, onRemove }: { member: Member; onChange: (
       </div>
       <div className="flex flex-1 flex-wrap gap-1">
         {PALS.map((p) => (
-          <button key={p.id} type="button" title={p.name} onClick={() => onChange({ palId: p.id })} className={cn("rounded-full p-0.5", member.palId === p.id && "ring-[0.2rem] ring-ink")}>
+          <button key={p.id} type="button" title={p.name} onClick={() => onChange({ palId: p.id, photo: undefined })} className={cn("rounded-full p-0.5", !member.photo && member.palId === p.id && "ring-[0.2rem] ring-ink")}>
             <Avatar palId={p.id} size={2.4} />
           </button>
         ))}

@@ -29,6 +29,7 @@ import { signalConfigured, signalSignIn, signalSignOut, useSignal } from "@/lib/
 import { EXPENSE_CATEGORIES, notionAction, useNotion } from "@/lib/integrations/notion";
 import { useCalendar } from "@/lib/integrations/calendar";
 import { Avatar } from "@/components/Avatar";
+import { PhotoAvatarButton, PhotoTile } from "@/components/PhotoPicker";
 import { BigButton, ChoreIcon, EmptyState, Field, Toggle } from "@/components/ui";
 import { PinPad, lockParent, makePinHash, useParentUnlocked } from "@/components/PinPad";
 import { AudioPlayer } from "@/components/Voice";
@@ -152,7 +153,7 @@ function Approvals() {
       }
       useHub.getState().resolveClaim(c.id, "approved");
       sfx.marble();
-      celebrate({ title: `+${c.points} for ${m?.name ?? "them"}!`, subtitle: c.choreName, palId: m?.palId });
+      celebrate({ title: `+${c.points} for ${m?.name ?? "them"}!`, subtitle: c.choreName, palId: m?.palId, photo: m?.photo });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "PointPals didn't accept that");
     } finally {
@@ -329,13 +330,13 @@ function Family() {
         {members.map((m) => (
           <div key={m.id} className="rounded-[1.8rem] bg-paper p-5">
             <div className="flex items-center gap-4">
-              <Avatar member={m} size={5} />
+              <PhotoAvatarButton member={m} size={5} onPhoto={(photo) => updateMember(m.id, { photo })} />
               <input
                 value={m.name}
                 onChange={(e) => updateMember(m.id, { name: e.target.value })}
-                className="h-[4.2rem] w-[14rem] rounded-[1.2rem] border-2 border-line bg-white px-4 font-display text-[2rem] font-black outline-none focus:border-sky"
+                className="h-[4.2rem] w-[11rem] min-w-0 rounded-[1.2rem] border-2 border-line bg-white px-4 font-display text-[2rem] font-black outline-none focus:border-sky"
               />
-              <div className="flex rounded-full bg-white p-1 ring-1 ring-black/5">
+              <div className="flex shrink-0 whitespace-nowrap rounded-full bg-white p-1 ring-1 ring-black/5">
                 {(["parent", "child"] as const).map((r) => (
                   <button
                     key={r}
@@ -375,18 +376,19 @@ function Family() {
                 type="button"
                 aria-label={`Remove ${m.name}`}
                 onClick={() => members.length > 1 && setMembers(members.filter((x) => x.id !== m.id))}
-                className="tap ml-auto grid size-[3.6rem] place-items-center rounded-full bg-white text-ink-3"
+                className="tap ml-auto grid size-[3.6rem] shrink-0 place-items-center rounded-full bg-white text-ink-3"
               >
                 <Trash2 className="size-6" />
               </button>
             </div>
-            <div className="mt-3 flex gap-2">
+            <div className="mt-3 flex items-center gap-2">
+              <PhotoTile member={m} size={3.2} onPhoto={(photo) => updateMember(m.id, { photo })} />
               {PALS.map((p) => (
                 <button
                   key={p.id}
                   type="button"
-                  onClick={() => updateMember(m.id, { palId: p.id })}
-                  className={cn("tap rounded-full p-0.5", m.palId === p.id && "ring-[0.25rem] ring-ink")}
+                  onClick={() => updateMember(m.id, { palId: p.id, photo: undefined })}
+                  className={cn("tap rounded-full p-0.5", !m.photo && m.palId === p.id && "ring-[0.25rem] ring-ink")}
                   aria-label={p.name}
                   title={`${p.name} · ${p.value}`}
                 >
