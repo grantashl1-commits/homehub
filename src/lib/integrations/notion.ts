@@ -1,6 +1,6 @@
-import { useHub } from "../store";
 import { useRemote } from "../useRemote";
-import { hubFetch } from "./hub-api";
+import { cacheKey, hubFetch } from "./hub-api";
+import { useHubAccess } from "../account";
 
 export interface NotionSummary {
   month: string;
@@ -9,7 +9,7 @@ export interface NotionSummary {
   recentExpenses: { id: string; item: string; amount: number; date: string | null; category: string | null }[];
   billsDue: { id: string; bill: string; amount: number | null; due: string | null; autoPay: boolean }[];
   tasks: { id: string; task: string; due: string | null; owner: string | null; area: string | null; status: string | null }[];
-  homeHubUrl: string;
+  homeHubUrl: string | null;
 }
 
 export const EXPENSE_CATEGORIES = [
@@ -31,9 +31,9 @@ export const EXPENSE_CATEGORIES = [
 ];
 
 export function useNotion(enabled: boolean) {
-  const hubKey = useHub((s) => s.settings.hubKey);
+  const access = useHubAccess();
   return useRemote<NotionSummary>(
-    enabled && hubKey ? "notion-summary" : null,
+    enabled && access ? cacheKey("notion-summary", access) : null,
     () => hubFetch<NotionSummary>("/api/notion"),
     { intervalMs: 10 * 60_000 },
   );

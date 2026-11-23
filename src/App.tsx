@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import { useHub } from "@/lib/store";
 import { startSignal } from "@/lib/integrations/signal";
 import { startPointPals } from "@/lib/integrations/pointpals";
+import { startAccount } from "@/lib/account";
 import { AppShell } from "@/components/AppShell";
 import { CelebrationLayer } from "@/components/Celebrate";
 import { ParentPinPrompt } from "@/components/PinPad";
@@ -24,6 +25,9 @@ const Welcome = lazy(() => import("@/pages/Welcome"));
 export default function App() {
   const setupDone = useHub((s) => s.settings.setupDone);
   const guestMode = useHub((s) => s.settings.guestMode);
+
+  // The family account keeps this screen's hub data in step with the others.
+  useEffect(() => startAccount(), []);
 
   useEffect(() => {
     // Guests never get family data, so the connectors don't even start.

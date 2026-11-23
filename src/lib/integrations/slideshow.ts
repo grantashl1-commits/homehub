@@ -1,6 +1,6 @@
-import { useHub } from "../store";
 import { useRemote } from "../useRemote";
-import { hubFetch } from "./hub-api";
+import { cacheKey, hubFetch } from "./hub-api";
+import { useHubAccess } from "../account";
 
 export interface SlideItem {
   id: string;
@@ -19,16 +19,16 @@ interface SlideshowResponse {
  * Google Drive folder via /api/slideshow (service account, server-side).
  */
 export function useSlideshow() {
-  const hubKey = useHub((s) => s.settings.hubKey);
+  const access = useHubAccess();
   const remote = useRemote<SlideshowResponse>(
-    hubKey ? "slideshow" : null,
+    access ? cacheKey("slideshow", access) : null,
     () => hubFetch<SlideshowResponse>("/api/slideshow"),
     { intervalMs: 10 * 60_000 },
   );
   return {
     items: remote.data?.items ?? [],
     connected: !!remote.data,
-    error: hubKey ? remote.error : undefined,
+    error: access ? remote.error : undefined,
     stale: remote.stale,
     refresh: remote.refresh,
   };

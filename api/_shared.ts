@@ -26,7 +26,7 @@ function digest(value: string): Buffer {
  */
 export function requireHubKey(request: Request): Response | null {
   const expected = process.env.HUB_ACCESS_KEY;
-  if (!expected) return json({ error: "HUB_ACCESS_KEY isn't set on the Vercel project yet." }, 503);
+  if (!expected) return json({ error: "Please sign in to your family account." }, 401);
   const got = request.headers.get("x-hub-key") ?? "";
   if (!got || !timingSafeEqual(digest(got), digest(expected))) {
     return json({ error: "That hub access key isn't right." }, 401);
@@ -47,18 +47,23 @@ export function addDaysToKey(key: string, days: number): string {
 
 /**
  * Sign a media URL so <img>/<video> tags can load it without the x-hub-key
- * header. The signature is an HMAC of `id.exp` under HUB_ACCESS_KEY, good for
+ * header. The signature is an HMAC of `id.exp` under HUB_ACCESS_KEY (or
+ * HUB_SECRETS_KEY when the shared key isn't used), good for
  * an hour; /api/slideshow-media verifies it.
  */
+function signingKey(): string {
+  return process.env.HUB_ACCESS_KEY || process.env.HUB_SECRETS_KEY || "";
+}
+
 export function signMediaUrl(id: string, ttlSeconds = 3600): string {
-  const key = process.env.HUB_ACCESS_KEY ?? "";
+  const key = signingKey();
   const exp = Math.floor(Date.now() / 1000) + ttlSeconds;
   const sig = createHmac("sha256", key).update(`${id}.${exp}`).digest("hex");
   return `/api/slideshow-media?id=${encodeURIComponent(id)}&exp=${exp}&sig=${sig}`;
 }
 
 export function verifyMediaUrl(id: string, exp: number, sig: string): boolean {
-  const key = process.env.HUB_ACCESS_KEY ?? "";
+  const key = signingKey();
   if (!key || !exp || !sig || exp < Math.floor(Date.now() / 1000)) return false;
   const expected = createHmac("sha256", key).update(`${id}.${exp}`).digest("hex");
   const a = Buffer.from(sig);

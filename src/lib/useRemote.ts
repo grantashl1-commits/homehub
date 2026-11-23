@@ -66,7 +66,11 @@ export function useRemote<T>(
   }, [key, persist]);
 
   useEffect(() => {
-    if (!key) return;
+    if (!key) {
+      // Signed out or switched family: don't keep showing the last one's data.
+      setData(undefined);
+      return;
+    }
     setData(readCache<T>(key));
     void run();
     const t = window.setInterval(run, intervalMs);

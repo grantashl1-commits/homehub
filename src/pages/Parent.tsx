@@ -37,6 +37,8 @@ import { PinPad, lockParent, makePinHash, useParentUnlocked } from "@/components
 import { AudioPlayer } from "@/components/Voice";
 import { celebrate } from "@/components/Celebrate";
 import { cn } from "@/lib/utils";
+import { useAccount } from "@/lib/account";
+import { FamilyAccountPanel, FamilyConnections } from "@/components/FamilyAccount";
 
 const NO_KIDS: import("@/lib/integrations/pointpals").PPKid[] = [];
 
@@ -439,7 +441,7 @@ function Money() {
 
   return (
     <div>
-      <H right={d && <a href={d.homeHubUrl} target="_blank" rel="noreferrer" className="text-[1.2rem] font-extrabold text-sky-ink underline">Open in Notion</a>}>
+      <H right={d?.homeHubUrl && <a href={d.homeHubUrl} target="_blank" rel="noreferrer" className="text-[1.2rem] font-extrabold text-sky-ink underline">Open in Notion</a>}>
         Money this month
       </H>
       {!d ? (
@@ -701,14 +703,19 @@ function Connections() {
   const calendar = useCalendar();
   const signal = useSignal();
   const pp = usePointPals();
+  const household = useAccount((a) => a.household?.id);
 
   return (
     <div className="flex flex-col gap-5">
       <H>Connections</H>
 
+      <FamilyAccountPanel />
+      <FamilyConnections onChanged={() => calendar.refresh()} />
+
+      {!household && (
       <Panel icon="🔑" title="Hub access key" status={hubKey ? "Saved on this screen" : "Not set"} ok={!!hubKey}>
         <p className="mb-3 text-[1.2rem] font-bold text-ink-2">
-          The same value as HUB_ACCESS_KEY in Vercel. It lets this screen read the family calendar and Notion through the hub's private functions.
+          For screens that aren't signed in to a family account: the same value as HUB_ACCESS_KEY in Vercel. It lets this screen read the home family's calendar and Notion.
         </p>
         <div className="flex gap-3">
           <input
@@ -732,11 +739,15 @@ function Connections() {
         </div>
       </Panel>
 
-      <Panel icon="📅" title="Google Calendar" status={calendar.connected ? "Connected" : calendar.error ?? "Waiting for the hub key"} ok={calendar.connected}>
-        <p className="text-[1.2rem] font-bold text-ink-2">
-          Reads the family calendar's private iCal link (FAMILY_ICAL_URL), plus BOOKINGS_ICAL_URL for Airbnb cleans and check-ins if you add it. The link only ever lives in Vercel.
-        </p>
-      </Panel>
+      )}
+
+      {!household && (
+        <Panel icon="📅" title="Google Calendar" status={calendar.connected ? "Connected" : calendar.error ?? "Waiting for the hub key"} ok={calendar.connected}>
+          <p className="text-[1.2rem] font-bold text-ink-2">
+            Reads the family calendar's private iCal link (FAMILY_ICAL_URL), plus BOOKINGS_ICAL_URL for Airbnb cleans and check-ins if you add it. The link only ever lives in Vercel.
+          </p>
+        </Panel>
+      )}
 
       <SignInPanel
         icon="🌿"
@@ -760,9 +771,11 @@ function Connections() {
         onSignOut={pointpalsSignOut}
       />
 
-      <Panel icon="📒" title="Notion" status="Uses the hub key" ok={!!hubKey}>
-        <p className="text-[1.2rem] font-bold text-ink-2">Money and To-dos read the Home Hub page in Notion through the hub's private function (NOTION_TOKEN in Vercel).</p>
-      </Panel>
+      {!household && (
+        <Panel icon="📒" title="Notion" status="Uses the hub key" ok={!!hubKey}>
+          <p className="text-[1.2rem] font-bold text-ink-2">Money and To-dos read the Home Hub page in Notion through the hub's private function (NOTION_TOKEN in Vercel).</p>
+        </Panel>
+      )}
     </div>
   );
 }

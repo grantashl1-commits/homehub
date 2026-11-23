@@ -42,3 +42,19 @@ Verified at 1180×820 (iPad), 1366×768 (Chromebook) and 1920×1080 (wall).
   their character did (home, Me, calendar, reflection, celebrations).
 - Photos are cropped square and shrunk to about 8KB, stored on the screen
   with the rest of the family settings. Picking a character switches back.
+
+## 24 Nov 2026: family accounts
+
+- Sign in on the welcome screen (or **New family**), or from Parent →
+  Connections on a screen that's already set up. The family's hub data saves
+  to the hub's Supabase project and syncs live between screens and phones.
+- Invite codes so a second grown-up can join the family.
+- Built for many families: every `/api` function works out the family from
+  the sign-in and reads that family's own calendar links, Notion token and
+  slideshow folder, saved encrypted from Parent → Connections. The Carlsons
+  (`HUB_HOME_HOUSEHOLD_ID`) keep using the Vercel env vars.
+- Notion: paste a token and the hub finds the Expenses / Bills / Life Admin
+  databases by name.
+- Database: `supabase/migrations/20261123000000_family_accounts.sql`, not
+  applied yet. Steps and the new-family checklist are in
+  [ACCOUNTS.md](ACCOUNTS.md).

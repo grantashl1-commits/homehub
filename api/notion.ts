@@ -3,26 +3,54 @@
  *   GET  → this month's spending by category, bills due in 14 days, life
  *          admin tasks marked "Show on hub".
  *   POST → { action: "addExpense" | "completeTask" | "markBillPaid", ... }
- * Needs NOTION_TOKEN (an internal integration connected to the Home Hub page)
- * and the x-hub-key header. Data source ids default to the databases created
- * for Home Hub and can be overridden with NOTION_DS_* env vars.
+ * Each family connects their own Notion: NOTION_TOKEN (an internal integration
+ * connected to their Home Hub page) saved in Parent → Connections, plus the
+ * Expenses / Bills / Life Admin data source ids, which are found by name when
+ * the token is saved. The home family can use the Vercel env vars instead and
+ * defaults to the databases created for the Carlsons' Home Hub page.
  */
-import { addDaysToKey, json, nzToday, requireHubKey } from "./_shared.js";
+import { addDaysToKey, json, nzToday } from "./_shared.js";
+import { requireFamily, type Family } from "./_family.js";
 
 const NOTION_VERSION = "2025-09-03";
 const HOME_HUB_URL = "https://app.notion.com/p/4210d85f784c810eb340c4fdf00f06a3";
-const DS = {
-  expenses: process.env.NOTION_DS_EXPENSES ?? "4210d85f-784c-810e-9eaa-000b089bf237",
-  bills: process.env.NOTION_DS_BILLS ?? "4210d85f-784c-8106-bdf7-000b91a2a8f7",
-  lifeAdmin: process.env.NOTION_DS_LIFE_ADMIN ?? "4210d85f-784c-815e-b546-000bc203372a",
+/** The Carlsons' databases, used only for the home family. */
+const HOME_DS = {
+  expenses: "4210d85f-784c-810e-9eaa-000b089bf237",
+  bills: "4210d85f-784c-8106-bdf7-000b91a2a8f7",
+  lifeAdmin: "4210d85f-784c-815e-b546-000bc203372a",
 };
+type Sources = typeof HOME_DS;
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Page = { id: string; properties: Record<string, any> };
 
-async function notion(path: string, init: { method?: string; body?: unknown } = {}): Promise<any> {
-  const token = process.env.NOTION_TOKEN;
-  if (!token) throw Object.assign(new Error("NOTION_TOKEN isn't set on the Vercel project yet."), { status: 503 });
+interface Ctx {
+  token: string;
+  ds: Sources;
+  homeUrl: string | null;
+}
+
+async function context(f: Family): Promise<Ctx> {
+  const token = await f.secret("NOTION_TOKEN");
+  if (!token) throw Object.assign(new Error("Notion isn't connected yet. Add it in Parent → Connections."), { status: 503 });
+  const pick = async (name: "NOTION_DS_EXPENSES" | "NOTION_DS_BILLS" | "NOTION_DS_LIFE_ADMIN", home: string) =>
+    (await f.secret(name)) ?? (f.isHome ? home : "");
+  const ds = {
+    expenses: await pick("NOTION_DS_EXPENSES", HOME_DS.expenses),
+    bills: await pick("NOTION_DS_BILLS", HOME_DS.bills),
+    lifeAdmin: await pick("NOTION_DS_LIFE_ADMIN", HOME_DS.lifeAdmin),
+  };
+  if (!ds.expenses || !ds.bills || !ds.lifeAdmin) {
+    throw Object.assign(
+      new Error("Couldn't find the Expenses, Bills and Life Admin databases. Share your Home Hub page with the integration, then save the token again."),
+      { status: 503 },
+    );
+  }
+  return { token, ds, homeUrl: f.isHome ? HOME_HUB_URL : null };
+}
+
+async function notion(token: string, path: string, init: { method?: string; body?: unknown } = {}): Promise<any> {
   const res = await fetch(`https://api.notion.com/v1/${path}`, {
     method: init.method ?? "GET",
     headers: {
@@ -40,11 +68,30 @@ async function notion(path: string, init: { method?: string; body?: unknown } = 
   return data;
 }
 
-async function query(dataSource: string, body: Record<string, unknown>): Promise<Page[]> {
+/**
+ * Finds a family's Expenses / Bills / Life Admin data sources by title, so a
+ * new family only has to paste their integration token.
+ */
+export async function discoverNotionSources(token: string): Promise<Record<string, string>> {
+  const want: Record<string, string> = { expenses: "NOTION_DS_EXPENSES", bills: "NOTION_DS_BILLS", "life admin": "NOTION_DS_LIFE_ADMIN" };
+  const found: Record<string, string> = {};
+  const data = await notion(token, "search", {
+    method: "POST",
+    body: { filter: { property: "object", value: "data_source" }, page_size: 100 },
+  });
+  for (const r of (data.results ?? []) as any[]) {
+    const title = (r.title ?? []).map((t: any) => t.plain_text).join("").trim().toLowerCase();
+    const name = want[title];
+    if (name && !found[name]) found[name] = r.id as string;
+  }
+  return found;
+}
+
+async function query(token: string, dataSource: string, body: Record<string, unknown>): Promise<Page[]> {
   const pages: Page[] = [];
   let cursor: string | undefined;
   do {
-    const data = await notion(`data_sources/${dataSource}/query`, {
+    const data = await notion(token, `data_sources/${dataSource}/query`, {
       method: "POST",
       body: { ...body, page_size: 100, ...(cursor ? { start_cursor: cursor } : {}) },
     });
@@ -60,15 +107,15 @@ const sel = (p: any): string | null => p?.select?.name ?? p?.status?.name ?? nul
 const date = (p: any): string | null => p?.date?.start ?? null;
 const box = (p: any): boolean => !!p?.checkbox;
 
-async function summary() {
+async function summary({ token, ds: DS, homeUrl }: Ctx) {
   const today = nzToday();
   const monthStart = `${today.slice(0, 7)}-01`;
   const [expenses, bills, tasks] = await Promise.all([
-    query(DS.expenses, {
+    query(token, DS.expenses, {
       filter: { property: "Date", date: { on_or_after: monthStart } },
       sorts: [{ property: "Date", direction: "descending" }],
     }),
-    query(DS.bills, {
+    query(token, DS.bills, {
       filter: {
         and: [
           { property: "Next due", date: { on_or_before: addDaysToKey(today, 14) } },
@@ -77,7 +124,7 @@ async function summary() {
       },
       sorts: [{ property: "Next due", direction: "ascending" }],
     }),
-    query(DS.lifeAdmin, {
+    query(token, DS.lifeAdmin, {
       filter: {
         and: [
           { property: "Show on hub", checkbox: { equals: true } },
@@ -123,7 +170,7 @@ async function summary() {
       area: sel(t.properties.Area),
       status: sel(t.properties.Status),
     })),
-    homeHubUrl: HOME_HUB_URL,
+    homeHubUrl: homeUrl,
   };
 }
 
@@ -139,18 +186,18 @@ function fail(e: unknown): Response {
 }
 
 export async function GET(request: Request): Promise<Response> {
-  const denied = requireHubKey(request);
-  if (denied) return denied;
+  const family = await requireFamily(request);
+  if (family instanceof Response) return family;
   try {
-    return json(await summary());
+    return json(await summary(await context(family)));
   } catch (e) {
     return fail(e);
   }
 }
 
 export async function POST(request: Request): Promise<Response> {
-  const denied = requireHubKey(request);
-  if (denied) return denied;
+  const family = await requireFamily(request);
+  if (family instanceof Response) return family;
   let body: any;
   try {
     body = await request.json();
@@ -158,6 +205,7 @@ export async function POST(request: Request): Promise<Response> {
     return json({ error: "Expected JSON" }, 400);
   }
   try {
+    const { token, ds: DS } = await context(family);
     switch (body?.action) {
       case "addExpense": {
         const item = String(body.item ?? "").slice(0, 200).trim();
@@ -165,7 +213,7 @@ export async function POST(request: Request): Promise<Response> {
         if (!item || !Number.isFinite(amount) || amount <= 0 || amount > 1_000_000) return json({ error: "Need an item and an amount" }, 400);
         const category = CATEGORIES.has(body.category) ? body.category : "Other";
         const paidBy = PAYERS.has(body.paidBy) ? body.paidBy : "Joint";
-        await notion("pages", {
+        await notion(token, "pages", {
           method: "POST",
           body: {
             parent: { type: "data_source_id", data_source_id: DS.expenses },
@@ -184,13 +232,13 @@ export async function POST(request: Request): Promise<Response> {
       case "completeTask": {
         const id = String(body.id ?? "");
         if (!/^[0-9a-f-]{32,36}$/i.test(id)) return json({ error: "Bad id" }, 400);
-        await notion(`pages/${id}`, { method: "PATCH", body: { properties: { Status: { status: { name: "Done" } } } } });
+        await notion(token, `pages/${id}`, { method: "PATCH", body: { properties: { Status: { status: { name: "Done" } } } } });
         return json({ ok: true });
       }
       case "markBillPaid": {
         const id = String(body.id ?? "");
         if (!/^[0-9a-f-]{32,36}$/i.test(id)) return json({ error: "Bad id" }, 400);
-        await notion(`pages/${id}`, { method: "PATCH", body: { properties: { "Paid this cycle": { checkbox: true } } } });
+        await notion(token, `pages/${id}`, { method: "PATCH", body: { properties: { "Paid this cycle": { checkbox: true } } } });
         return json({ ok: true });
       }
       default:
