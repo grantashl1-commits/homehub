@@ -38,6 +38,11 @@ Verified at 1180×820 (iPad), 1366×768 (Chromebook) and 1920×1080 (wall).
   into `src/lib/signal-parity.ts`, so `name`/`totalQty`/`unit`/`category`/
   `searchTerm` (and therefore the shared `itemKey`) line up. Round-trip tests
   need live SIGNAL/PointPals logins (pending Phase 1 connection).
+- Added `npm run sync:recipes` (`scripts/sync-recipes.mjs`): esbuild-bundles
+  SIGNAL's `recipe-library.ts` + `category-illustrations.ts` and rebuilds
+  `public/data/signal-recipes.json`, filling images via SIGNAL's
+  `getRecipeIllustration`. Re-running it restored images to 137 recipes that
+  shipped with `image: null`.
 - Known gap: the hub's list reads only SIGNAL's `custom_items`; SIGNAL's
   meal-plan-derived ingredients aren't persisted, so they don't appear on the
   hub yet.

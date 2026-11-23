@@ -46,3 +46,11 @@ cp .env.example .env.local   # fill in what you have
 npm install
 npm run dev                  # the /api functions also run under Vite
 ```
+
+The SIGNAL recipe library ships as a static export at
+`public/data/signal-recipes.json`. Rebuild it from the SIGNAL repo when its
+recipes change (check out `../signalnz` next to this repo first):
+
+```bash
+npm run sync:recipes
+```
