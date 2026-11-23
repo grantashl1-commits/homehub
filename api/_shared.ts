@@ -2,7 +2,7 @@
  * Shared helpers for the hub's Vercel functions. Files starting with "_" are
  * not deployed as routes.
  */
-import { createHash, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
 export function json(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), {
@@ -43,4 +43,25 @@ export function addDaysToKey(key: string, days: number): string {
   const d = new Date(`${key}T12:00:00Z`);
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Sign a media URL so <img>/<video> tags can load it without the x-hub-key
+ * header. The signature is an HMAC of `id.exp` under HUB_ACCESS_KEY, good for
+ * an hour; /api/slideshow-media verifies it.
+ */
+export function signMediaUrl(id: string, ttlSeconds = 3600): string {
+  const key = process.env.HUB_ACCESS_KEY ?? "";
+  const exp = Math.floor(Date.now() / 1000) + ttlSeconds;
+  const sig = createHmac("sha256", key).update(`${id}.${exp}`).digest("hex");
+  return `/api/slideshow-media?id=${encodeURIComponent(id)}&exp=${exp}&sig=${sig}`;
+}
+
+export function verifyMediaUrl(id: string, exp: number, sig: string): boolean {
+  const key = process.env.HUB_ACCESS_KEY ?? "";
+  if (!key || !exp || !sig || exp < Math.floor(Date.now() / 1000)) return false;
+  const expected = createHmac("sha256", key).update(`${id}.${exp}`).digest("hex");
+  const a = Buffer.from(sig);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
 }

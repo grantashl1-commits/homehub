@@ -28,6 +28,7 @@ import { pointpalsAward, pointpalsConfigured, pointpalsSignIn, pointpalsSignOut,
 import { signalConfigured, signalSignIn, signalSignOut, useSignal } from "@/lib/integrations/signal";
 import { EXPENSE_CATEGORIES, notionAction, useNotion } from "@/lib/integrations/notion";
 import { useCalendar } from "@/lib/integrations/calendar";
+import { useSlideshow } from "@/lib/integrations/slideshow";
 import { Avatar } from "@/components/Avatar";
 import { PhotoAvatarButton, PhotoTile } from "@/components/PhotoPicker";
 import { BigButton, ChoreIcon, EmptyState, Field, Toggle } from "@/components/ui";
@@ -601,6 +602,7 @@ function NotConnected({ what, error }: { what: string; error: string }) {
 function Photos() {
   const photos = useHub((s) => s.photos);
   const { addPhoto, removePhoto } = useHub.getState();
+  const slideshow = useSlideshow();
   const [busy, setBusy] = useState(false);
   return (
     <div>
@@ -634,8 +636,37 @@ function Photos() {
       <p className="mb-4 text-[1.25rem] font-bold text-ink-2">
         These play when the screen has been idle for a while. Pick from this device's photos, or export the kids' videos from Canva as MP4 and add them here.
       </p>
+
+      <div className="mb-5 flex items-center justify-between rounded-[1.25rem] bg-white/70 px-5 py-3 ring-1 ring-black/5">
+        <p className="text-[1.25rem] font-extrabold">Google Drive folder</p>
+        {slideshow.connected ? (
+          <span className="rounded-full bg-sage/20 px-3 py-1 text-[1.05rem] font-black text-sage-ink">
+            {slideshow.items.length} {slideshow.items.length === 1 ? "item" : "items"}
+          </span>
+        ) : (
+          <span className="rounded-full bg-sun/30 px-3 py-1 text-[1.05rem] font-black text-ink-2">Not connected</span>
+        )}
+      </div>
+      {slideshow.connected && slideshow.items.length === 0 ? (
+        <p className="mb-4 text-[1.2rem] font-bold text-ink-2">
+          The Drive folder is empty. Drop photos and videos into it and they'll show up here.
+        </p>
+      ) : (
+        slideshow.items.length > 0 && (
+          <div className="mb-6 grid grid-cols-5 gap-3">
+            {slideshow.items.map((d) => (
+              <div key={d.id} className="relative aspect-square overflow-hidden rounded-[1.2rem] bg-paper">
+                {d.kind === "video" ? <video src={d.url} muted className="size-full object-cover" /> : <img src={d.url} alt="" className="size-full object-cover" />}
+              </div>
+            ))}
+          </div>
+        )
+      )}
+      {slideshow.error && <p className="mb-4 text-[1.2rem] font-bold text-rose">{slideshow.error}</p>}
+
+      <p className="mb-2 mt-6 text-[1.15rem] font-extrabold uppercase tracking-wide text-ink-3">Added on this screen</p>
       {photos.length === 0 ? (
-        <EmptyState emoji="🖼️" title="No photos yet" />
+        <EmptyState emoji="🖼️" title="No local photos yet" />
       ) : (
         <div className="grid grid-cols-5 gap-3">
           {photos.map((p) => (

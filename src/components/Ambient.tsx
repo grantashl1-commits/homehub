@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useHub } from "@/lib/store";
 import { useNow } from "@/lib/hooks";
@@ -6,30 +6,41 @@ import { formatDateLong, formatTime, relativeDayLabel } from "@/lib/time";
 import { mediaUrl } from "@/lib/media";
 import { eventStart, useCalendar } from "@/lib/integrations/calendar";
 import { describeWeather, useWeather } from "@/lib/integrations/weather";
+import { useSlideshow } from "@/lib/integrations/slideshow";
 import { Avatar } from "./Avatar";
 
 /** Family photos (added in Parent → Photos) with a clock, or a calm animated scene. */
 export function Screensaver({ onWake }: { onWake: () => void }) {
   const photos = useHub((s) => s.photos);
   const members = useHub((s) => s.members);
+  const slideshow = useSlideshow();
   const now = useNow(15_000);
   const { events } = useCalendar();
   const next = events.find((e) => eventStart(e) > now);
   const [index, setIndex] = useState(0);
   const [url, setUrl] = useState<string>();
 
+  // Drive photos and videos first, then anything added on this screen.
+  const slides = useMemo(() => {
+    const drive = slideshow.items.map((d) => ({ id: d.id, kind: d.kind, mediaId: undefined, url: d.url }));
+    const local = photos.map((p) => ({ id: p.id, kind: p.kind, mediaId: p.mediaId, url: undefined as string | undefined }));
+    return [...drive, ...local];
+  }, [slideshow.items, photos]);
+
   useEffect(() => {
-    if (!photos.length) return;
-    const t = window.setInterval(() => setIndex((i) => (i + 1) % photos.length), 9000);
+    if (!slides.length) return;
+    const t = window.setInterval(() => setIndex((i) => (i + 1) % slides.length), 9000);
     return () => window.clearInterval(t);
-  }, [photos.length]);
+  }, [slides.length]);
 
   useEffect(() => {
-    const p = photos[index % Math.max(1, photos.length)];
-    if (p) void mediaUrl(p.mediaId).then(setUrl);
-  }, [index, photos]);
+    const s = slides[index % Math.max(1, slides.length)];
+    if (!s) return;
+    if (s.url) setUrl(s.url);
+    else if (s.mediaId) void mediaUrl(s.mediaId).then(setUrl);
+  }, [index, slides]);
 
-  const photo = photos[index % Math.max(1, photos.length)];
+  const photo = slides[index % Math.max(1, slides.length)];
 
   return (
     <motion.button

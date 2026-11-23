@@ -17,6 +17,8 @@ Code with the Vercel CLI linked you can also run `vercel env add NAME`.
 | `KIDS_ICAL_URL` (optional) | A kids' calendar | Same |
 | `NOTION_TOKEN` | Money and To-dos from the Notion "Home Hub" page | notion.so/profile/integrations → New internal integration "Home Hub" → copy the secret. Then on the Home Hub page: ••• → Connections → add Home Hub |
 | `ANTHROPIC_API_KEY` | "Snap a notice": reads school newsletters into events | console.anthropic.com → API keys |
+| `GOOGLE_SERVICE_ACCOUNT_JSON` | A base64'd Google service-account key the hub uses to read the slideshow Drive folder (and, later, write the calendar) | Create a service account in Google Cloud, enable the Google Drive API, add a JSON key, then `[Convert]::ToBase64String([IO.File]::ReadAllBytes("key.json"))` |
+| `SLIDESHOW_DRIVE_FOLDER_ID` | The "Home Hub Slideshow" Google Drive folder | Open the folder → copy the id from the URL (`drive/folders/<id>`). Share the folder with the service account's email as Viewer |
 | `VITE_SIGNAL_SUPABASE_URL`, `VITE_SIGNAL_SUPABASE_KEY` | SIGNAL shopping list and meal plan | `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` from the signalnz project |
 | `VITE_SIGNAL_SITE_URL` | Where SIGNAL's recipe photos live | `https://signal.mindcast.co.nz` |
 | `VITE_POINTPALS_SUPABASE_URL`, `VITE_POINTPALS_SUPABASE_KEY` | PointPals jobs, marbles and jars | `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` from the point-pals-app project |
