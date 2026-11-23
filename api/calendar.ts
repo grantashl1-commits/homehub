@@ -10,7 +10,7 @@
  */
 import { json } from "./_shared.js";
 import { requireFamily, type Family } from "./_family.js";
-import { parseIcs, type Feed, type HubEvent } from "./parse-ics.js";
+import { parseIcs, type Feed, type HubEvent } from "./_parse-ics.js";
 
 const TTL_MS = 5 * 60_000;
 const cache = new Map<string, { at: number; events: HubEvent[] }>();
