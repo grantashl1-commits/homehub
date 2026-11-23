@@ -2,11 +2,14 @@
  * GET /api/slideshow → the family's photos and videos for the idle screensaver,
  * listed from the Google Drive folder shared with the hub's service account.
  *   GOOGLE_SERVICE_ACCOUNT_JSON  (required) base64 service-account key
- *   SLIDESHOW_DRIVE_FOLDER_ID    (required) the "Home Hub Slideshow" folder
+ *   SLIDESHOW_DRIVE_FOLDER_ID    (per family) the "Home Hub Slideshow" folder,
+ *                                saved in Parent → Connections or, for the
+ *                                home family, in Vercel
  * Each item's `url` is a short-lived signed link to /api/slideshow-media, so
  * the <img>/<video> tags can load it without the x-hub-key header.
  */
-import { json, requireHubKey, signMediaUrl } from "./_shared.js";
+import { json, signMediaUrl } from "./_shared.js";
+import { requireFamily } from "./_family.js";
 import { driveToken } from "./_google.js";
 
 interface SlideItem {
@@ -17,19 +20,20 @@ interface SlideItem {
 }
 
 const TTL_MS = 5 * 60_000;
-let cache: { at: number; items: SlideItem[] } | undefined;
+const cache = new Map<string, { at: number; items: SlideItem[] }>();
 
 export async function GET(request: Request): Promise<Response> {
-  const denied = requireHubKey(request);
-  if (denied) return denied;
-  const folderId = process.env.SLIDESHOW_DRIVE_FOLDER_ID;
-  if (!folderId) return json({ error: "SLIDESHOW_DRIVE_FOLDER_ID isn't set on the Vercel project yet." }, 503);
-
-  if (cache && Date.now() - cache.at < TTL_MS) {
-    return json({ items: cache.items, fetchedAt: new Date(cache.at).toISOString() });
-  }
+  const family = await requireFamily(request);
+  if (family instanceof Response) return family;
 
   try {
+    const folderId = await family.secret("SLIDESHOW_DRIVE_FOLDER_ID");
+    if (!folderId) return json({ error: "No slideshow folder linked yet. Add it in Parent → Connections." }, 503);
+    const hit = cache.get(folderId);
+    if (hit && Date.now() - hit.at < TTL_MS) {
+      return json({ items: hit.items, fetchedAt: new Date(hit.at).toISOString() });
+    }
+
     const token = await driveToken();
     const q = encodeURIComponent(`'${folderId}' in parents and trashed = false`);
     const res = await fetch(
@@ -46,7 +50,7 @@ export async function GET(request: Request): Promise<Response> {
         kind: f.mimeType.startsWith("video/") ? "video" : "image",
         url: signMediaUrl(f.id),
       }));
-    cache = { at: Date.now(), items };
+    cache.set(folderId, { at: Date.now(), items });
     return json({ items, fetchedAt: new Date().toISOString() });
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : "Couldn't read the slideshow folder." }, 502);

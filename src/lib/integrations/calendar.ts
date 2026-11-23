@@ -5,7 +5,8 @@ import { DAY_PART_TIMES, fromDateKey } from "../time";
 import { nzCalendarEvents } from "../nz";
 import type { CalendarEvent, Member } from "../types";
 import { useRemote } from "../useRemote";
-import { hubFetch } from "./hub-api";
+import { cacheKey, hubFetch } from "./hub-api";
+import { useHubAccess } from "../account";
 
 interface CalendarResponse {
   events: CalendarEvent[];
@@ -19,12 +20,12 @@ interface CalendarResponse {
  * calendar isn't connected yet and samples are switched on.
  */
 export function useCalendar() {
-  const hubKey = useHub((s) => s.settings.hubKey);
+  const access = useHubAccess();
   const showSamples = useHub((s) => s.settings.showSamples);
   const kidPlans = useHub((s) => s.kidPlans);
   const nzDates = useHub((s) => s.settings.nzDates);
   const remote = useRemote<CalendarResponse>(
-    hubKey ? "calendar" : null,
+    access ? cacheKey("calendar", access) : null,
     () => hubFetch<CalendarResponse>("/api/calendar"),
     { intervalMs: 5 * 60_000 },
   );
@@ -62,7 +63,7 @@ export function useCalendar() {
     events,
     connected: !!remote.data,
     usingSamples: !remote.data && showSamples,
-    error: hubKey ? remote.error : undefined,
+    error: access ? remote.error : undefined,
     stale: remote.stale,
     refresh: remote.refresh,
   };

@@ -9,6 +9,7 @@ Read these first:
 - [`docs/BRIEF.md`](docs/BRIEF.md): what it's for (original brief).
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): how it's built and where data lives.
 - [`docs/SETUP.md`](docs/SETUP.md): env vars and connecting SIGNAL, PointPals, Google, Notion.
+- [`docs/ACCOUNTS.md`](docs/ACCOUNTS.md): family sign-in, sync, and how another family connects their data.
 - [`docs/PROGRESS.md`](docs/PROGRESS.md): what's done. Update it after each piece of work.
 
 ## Stack
@@ -34,7 +35,10 @@ Read these first:
 - PointPals and SIGNAL are live apps: the hub reads and writes their data
   through their own Supabase RLS. Don't change their schemas from here.
 
-## Supabase (hub project, not used yet)
+- Family-specific server values go through `family.secret()` from
+  `requireFamily()` in `api/_family.ts`, never straight from `process.env`.
+
+## Supabase (hub project: family accounts and sync)
 
 - Project ref: `wpbvrjogeannuqshghnb`. Use the new publishable/secret keys
   (`VITE_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEYS`), never legacy keys.

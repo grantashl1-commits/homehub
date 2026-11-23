@@ -4,10 +4,13 @@
  *   FAMILY_ICAL_URL   (required) family calendar
  *   BOOKINGS_ICAL_URL (optional) Airbnb bookings and cleans
  *   KIDS_ICAL_URL     (optional) the kids' calendar
- * The links never reach the browser. Requires the x-hub-key header.
+ * Each family's own links are saved in Parent → Connections (household_secrets);
+ * the home family can also use the Vercel env vars above. The links never
+ * reach the browser. Requires a family sign-in or the x-hub-key header.
  */
 import ICAL from "ical.js";
-import { json, requireHubKey } from "./_shared.js";
+import { json } from "./_shared.js";
+import { requireFamily, type Family } from "./_family.js";
 
 type Feed = "family" | "bookings" | "kids";
 
@@ -24,11 +27,11 @@ interface HubEvent {
 const TTL_MS = 5 * 60_000;
 const cache = new Map<string, { at: number; events: HubEvent[] }>();
 
-function feeds(): { feed: Feed; url: string }[] {
+async function feeds(f: Family): Promise<{ feed: Feed; url: string }[]> {
   const list: { feed: Feed; url: string | undefined }[] = [
-    { feed: "family", url: process.env.FAMILY_ICAL_URL },
-    { feed: "bookings", url: process.env.BOOKINGS_ICAL_URL },
-    { feed: "kids", url: process.env.KIDS_ICAL_URL },
+    { feed: "family", url: await f.secret("FAMILY_ICAL_URL") },
+    { feed: "bookings", url: await f.secret("BOOKINGS_ICAL_URL") },
+    { feed: "kids", url: await f.secret("KIDS_ICAL_URL") },
   ];
   return list
     .filter((f): f is { feed: Feed; url: string } => !!f.url)
@@ -111,10 +114,15 @@ async function load(feed: Feed, url: string, from: Date, to: Date): Promise<HubE
 }
 
 export async function GET(request: Request): Promise<Response> {
-  const denied = requireHubKey(request);
-  if (denied) return denied;
-  const list = feeds();
-  if (!list.length) return json({ error: "FAMILY_ICAL_URL isn't set on the Vercel project yet." }, 503);
+  const family = await requireFamily(request);
+  if (family instanceof Response) return family;
+  let list: { feed: Feed; url: string }[];
+  try {
+    list = await feeds(family);
+  } catch (e) {
+    return json({ error: e instanceof Error ? e.message : "Couldn't load the calendar links." }, 502);
+  }
+  if (!list.length) return json({ error: "No family calendar linked yet. Add it in Parent → Connections." }, 503);
 
   const from = new Date(Date.now() - 36 * 3600_000);
   const to = new Date(Date.now() + 35 * 86400_000);
@@ -124,7 +132,7 @@ export async function GET(request: Request): Promise<Response> {
     .map((r, i) => (r.status === "rejected" ? list[i].feed : null))
     .filter(Boolean);
   if (failed.length === list.length) {
-    return json({ error: "Couldn't read the calendar link. Check FAMILY_ICAL_URL." }, 502);
+    return json({ error: "Couldn't read the calendar link. Check it in Parent → Connections." }, 502);
   }
   events.sort((a, b) => a.start.localeCompare(b.start));
   return json({ events: events.slice(0, 600), feeds: list.map((f) => f.feed), failed, fetchedAt: new Date().toISOString() });

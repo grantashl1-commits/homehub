@@ -3,9 +3,11 @@
  * Reads a photo of a school newsletter, party invite or sports draw and
  * returns the dated events on it, using Claude's vision. Needs
  * ANTHROPIC_API_KEY (and optionally ANTHROPIC_MODEL) on the Vercel project,
- * plus the x-hub-key header.
+ * plus a family sign-in or the x-hub-key header. The key is the hub's own, so
+ * only the home family can use it unless SNAP_FOR_ALL_FAMILIES=true.
  */
-import { json, nzToday, requireHubKey } from "./_shared.js";
+import { json, nzToday } from "./_shared.js";
+import { requireFamily } from "./_family.js";
 
 const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-haiku-5-5";
 
@@ -39,8 +41,11 @@ function clean(e: Partial<SnapEvent>): SnapEvent | null {
 }
 
 export async function POST(request: Request): Promise<Response> {
-  const denied = requireHubKey(request);
-  if (denied) return denied;
+  const family = await requireFamily(request);
+  if (family instanceof Response) return family;
+  if (!family.isHome && process.env.SNAP_FOR_ALL_FAMILIES !== "true") {
+    return json({ error: "Snap a notice isn't switched on for this family yet." }, 403);
+  }
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return json({ error: "ANTHROPIC_API_KEY isn't set on the Vercel project yet." }, 503);
 
