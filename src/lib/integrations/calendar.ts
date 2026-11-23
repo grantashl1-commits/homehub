@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { membersForTitle } from "../member-match";
 import { useHub } from "../store";
 import { sampleEvents } from "../sample";
 import { DAY_PART_TIMES, fromDateKey } from "../time";
@@ -89,13 +90,10 @@ export function onDay(e: CalendarEvent, day: Date): boolean {
   return s >= dayStart && s < dayEnd;
 }
 
-/** Work out whose event it is by looking for family names in the title. */
+/** Whose event it is, using the names and words each person has been given. */
 export function eventMembers(e: CalendarEvent, members: Member[], kidPlanMembers?: string[]): string[] {
   if (kidPlanMembers?.length) return kidPlanMembers;
-  const title = e.title.toLowerCase();
-  return members
-    .filter((m) => new RegExp(`\\b${m.name.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(title))
-    .map((m) => m.id);
+  return membersForTitle(e.title, members);
 }
 
 export function bookingKind(e: CalendarEvent): "clean" | "checkin" | "checkout" | "stay" {

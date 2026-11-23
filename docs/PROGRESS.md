@@ -1,5 +1,18 @@
 # Progress
 
+## 24 Nov 2026: events land in the right person's column
+
+- The People view matched an owner only by a family name inside the title, so
+  activity-named events ("Athletics @ Hilltop", "🤸 Gymnastics") sat in the
+  Family column and each person's column said "Nothing on".
+- Each person now has **Also matches** in Parent → Family: comma-separated
+  words **or emoji**. The convention the family uses in Google Calendar works
+  directly: 👦 and 👧 on a kids' event (both, if both emoji are there), 👨 and 👩
+  with a name for a grown-up's event.
+- Skin tones and emoji presentation selectors are ignored when comparing, so
+  🤸🏼‍♀️ matches a marker of 🤸‍♀️. Names still match as whole words.
+- An event that matches nobody stays in the Family column; one that matches two
+  people shows in both columns. Covered by 7 unit tests.
 ## 24 Nov 2026: the house guide, on the screen
 
 - Guests used to get a QR code to a PDF. The guest screen's house guide is now

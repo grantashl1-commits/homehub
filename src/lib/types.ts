@@ -13,6 +13,8 @@ export interface Member {
   birthday?: string;
   /** Their own profile photo: a small square JPEG data URL, kept on this screen. Shown instead of the character. */
   photo?: string;
+  /** Comma-separated words or emoji that mean this person on the calendar ("👦, athletics"). */
+  keywords?: string;
 }
 
 export type NoteColor = "sun" | "rose" | "sky" | "sage" | "lilac" | "peach";
