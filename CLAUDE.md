@@ -22,6 +22,14 @@ A fridge-style family touchscreen PWA for our kitchen. The full brief lives in [
 - `npm run preview` — preview the production build
 - `npx shadcn@latest add <component>` — add a shadcn/ui component
 
+## Supabase
+
+- Project ref: `wpbvrjogeannuqshghnb` (`https://wpbvrjogeannuqshghnb.supabase.co`).
+- Use the **new** publishable/secret keys, not the legacy `anon`/`service_role` keys (retiring early 2027).
+  - Client (Vite): `VITE_SUPABASE_URL` + `VITE_SUPABASE_PUBLISHABLE_KEY` (`sb_publishable_...`).
+  - Backend (Supabase Edge Functions): `sb_secret_...` key, read from `SUPABASE_SECRET_KEYS` (JSON keyed by name) — never exposed to the browser.
+- The secret key bypasses RLS and is server-only. Keys never go in source; use env vars.
+
 ## Conventions
 
 - `@/` maps to `src/`.
