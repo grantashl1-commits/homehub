@@ -25,6 +25,7 @@ export default function Habits() {
   const member = members.find((m) => m.id === id) ?? members[0];
   const habit = member ? activeHabit(habits, member.id) : undefined;
   const signalUser = useSignal((s) => s.userId);
+  const todayDone = useSignal((s) => s.todayDone);
   const [signalHabits, setSignalHabits] = useState<SignalHabit[]>([]);
   const [freq, setFreq] = useState<Freq>("daily");
   const [custom, setCustom] = useState("");
@@ -100,18 +101,20 @@ export default function Habits() {
             {week.map((d) => {
               const c = habit && checkins.find((x) => x.habitId === habit.id && x.date === dateKey(d));
               const isToday = dateKey(d) === dateKey();
+              const signalDone = isToday && !!habit?.signalHabitId && todayDone.includes(habit.signalHabitId);
+              const done = c?.status === "done" || signalDone;
               return (
                 <div key={d.toISOString()} className="flex flex-col items-center gap-1">
                   <span className={cn("text-[1.05rem] font-black", isToday ? "text-coral-ink" : "text-ink-3")}>{formatDayShort(d)}</span>
                   <span
                     className={cn(
                       "grid size-[3.4rem] place-items-center rounded-full text-[1.4rem] ring-2",
-                      c?.status === "done" ? "ring-transparent" : "bg-white ring-black/10",
-                      isToday && !c && "ring-coral",
+                      done ? "ring-transparent" : "bg-white ring-black/10",
+                      isToday && !c && !signalDone && "ring-coral",
                     )}
-                    style={c?.status === "done" ? { background: p.color } : c ? { background: "var(--lilac-tint)" } : undefined}
+                    style={done ? { background: p.color } : c ? { background: "var(--lilac-tint)" } : undefined}
                   >
-                    {c?.status === "done" ? "✓" : c ? "☁️" : ""}
+                    {done ? "✓" : c ? "☁️" : ""}
                   </span>
                 </div>
               );

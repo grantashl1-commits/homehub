@@ -36,7 +36,16 @@ export default function Reflect() {
   const habit = person ? activeHabit(habits, person.id) : undefined;
   const next = members[index + 1];
   const tonight = useMemo(() => checkins.filter((c) => c.date === today), [checkins, today]);
-  const answered = (m: Member) => tonight.find((c) => c.memberId === m.id);
+  const todayDone = useSignal((s) => s.todayDone);
+  const answered = (m: Member) => {
+    const local = tonight.find((c) => c.memberId === m.id);
+    if (local) return local;
+    const h = activeHabit(habits, m.id);
+    if (h?.signalHabitId && todayDone.includes(h.signalHabitId)) {
+      return { id: `signal:${m.id}`, habitId: h.id, memberId: m.id, date: today, status: "done" as const, at: Date.now() };
+    }
+    return undefined;
+  };
 
   const advance = () => {
     setBusy(false);

@@ -56,10 +56,11 @@ Verified at 1180×820 (iPad), 1366×768 (Chromebook) and 1920×1080 (wall).
 - Added `npm run sync:habits` (`scripts/sync-habits.mjs`): esbuild-bundles
   SIGNAL's `habit-library.ts` + `habit-art.ts` and rebuilds
   `public/data/signal-habits.json` (77 habits with illustration paths).
-- Mum's habits now sync to SIGNAL: `signalSetHabitDone` writes
+- Mum's habits now sync to SIGNAL both ways: `signalSetHabitDone` writes
   `habit_completions` (local date, upsert on conflict) and
   `fetchHabitCompletions` reads today's ticks. When SIGNAL is linked, the
-  habit picker shows SIGNAL's library to the first parent member, and a
-  "Yes!" at dinnertime reflection records the completion in SIGNAL.
+  habit picker shows SIGNAL's library to the first parent member, a "Yes!" at
+  dinnertime reflection records the completion, and a tick made in the SIGNAL
+  app shows as done on the hub (reflection header + habit week strip).
 - Known simplification: Mum is identified as the first parent member; kids/Dad
-  presets still to be expanded from SIGNAL's library.
+  presets still to be expanded from SIGNAL's library (a curation task).
