@@ -8,21 +8,9 @@
  * the home family can also use the Vercel env vars above. The links never
  * reach the browser. Requires a family sign-in or the x-hub-key header.
  */
-import ICAL from "ical.js";
 import { json } from "./_shared.js";
 import { requireFamily, type Family } from "./_family.js";
-
-type Feed = "family" | "bookings" | "kids";
-
-interface HubEvent {
-  id: string;
-  title: string;
-  start: string;
-  end: string;
-  allDay: boolean;
-  location?: string;
-  calendar: Feed;
-}
+import { parseIcs, type Feed, type HubEvent } from "./parse-ics.js";
 
 const TTL_MS = 5 * 60_000;
 const cache = new Map<string, { at: number; events: HubEvent[] }>();
@@ -38,70 +26,6 @@ async function feeds(f: Family): Promise<{ feed: Feed; url: string }[]> {
     .map((f) => ({ feed: f.feed, url: f.url.replace(/^webcal:\/\//i, "https://") }));
 }
 
-function dateOnly(t: ICAL.Time): string {
-  return `${t.year}-${String(t.month).padStart(2, "0")}-${String(t.day).padStart(2, "0")}`;
-}
-
-function toOut(feed: Feed, uid: string, summary: string, location: string | undefined, start: ICAL.Time, end: ICAL.Time): HubEvent {
-  const allDay = start.isDate;
-  return {
-    id: `${feed}:${uid}:${start.toString()}`,
-    title: summary || "(No title)",
-    start: allDay ? dateOnly(start) : start.toJSDate().toISOString(),
-    end: allDay ? dateOnly(end) : end.toJSDate().toISOString(),
-    allDay,
-    location: location || undefined,
-    calendar: feed,
-  };
-}
-
-export function parseIcs(text: string, feed: Feed, from: Date, to: Date): HubEvent[] {
-  const root = new ICAL.Component(ICAL.parse(text));
-  for (const tz of root.getAllSubcomponents("vtimezone")) {
-    try {
-      ICAL.TimezoneService.register(tz);
-    } catch {
-      /* already registered */
-    }
-  }
-  const rangeStart = ICAL.Time.fromJSDate(from, true);
-  const rangeEnd = ICAL.Time.fromJSDate(to, true);
-
-  const masters = new Map<string, ICAL.Event>();
-  const exceptions: ICAL.Event[] = [];
-  for (const v of root.getAllSubcomponents("vevent")) {
-    if (String(v.getFirstPropertyValue("status") ?? "").toUpperCase() === "CANCELLED") continue;
-    const ev = new ICAL.Event(v);
-    if (ev.isRecurrenceException()) exceptions.push(ev);
-    else masters.set(ev.uid, ev);
-  }
-  for (const ex of exceptions) {
-    const m = masters.get(ex.uid);
-    if (m) m.relateException(ex);
-    else masters.set(`${ex.uid}:${ex.recurrenceId?.toString()}`, ex);
-  }
-
-  const out: HubEvent[] = [];
-  for (const ev of masters.values()) {
-    if (ev.isRecurring()) {
-      const it = ev.iterator();
-      let next: ICAL.Time | null;
-      let guard = 0;
-      while ((next = it.next()) && guard++ < 5000) {
-        if (next.compare(rangeEnd) > 0) break;
-        const d = ev.getOccurrenceDetails(next);
-        if (d.endDate.compare(rangeStart) <= 0) continue;
-        if (String(d.item.component.getFirstPropertyValue("status") ?? "").toUpperCase() === "CANCELLED") continue;
-        out.push(toOut(feed, ev.uid, d.item.summary, d.item.location, d.startDate, d.endDate));
-      }
-    } else {
-      const end = ev.endDate ?? ev.startDate;
-      if (ev.startDate.compare(rangeEnd) > 0 || end.compare(rangeStart) <= 0) continue;
-      out.push(toOut(feed, ev.uid, ev.summary, ev.location, ev.startDate, end));
-    }
-  }
-  return out;
-}
 
 async function load(feed: Feed, url: string, from: Date, to: Date): Promise<HubEvent[]> {
   const hit = cache.get(url);

@@ -56,4 +56,5 @@ Redeploy after adding `VITE_*` variables (they're baked into the build).
 cp .env.example .env.local   # fill in what you have
 npm install
 npm run dev                  # the /api functions also run under Vite
+npm test                     # vitest: iCal parsing, NZ dates, week keys
 ```
