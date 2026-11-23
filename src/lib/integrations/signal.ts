@@ -12,7 +12,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { create } from "zustand";
 import type { ListItem, Recipe } from "../types";
-import { categorise } from "../catalog";
+import { categoriseItem, parseIngredient, parseQty, toNZName } from "../signal-parity";
 import { isoWeekKey } from "../time";
 
 const URL = import.meta.env.VITE_SIGNAL_SUPABASE_URL as string | undefined;
@@ -161,20 +161,26 @@ async function mutateList(
   }
 }
 
-export function signalAddItem(name: string, category?: string, recipe?: string) {
+export function signalAddItem(name: string, _category?: string, recipe?: string) {
   const clean = name.trim();
   if (!clean) return Promise.resolve();
+  // Shape the item exactly as SIGNAL's own "add item" does, so the stored
+  // fields (and therefore the itemKey) match SIGNAL's and tick state shares.
+  const parsed = parseIngredient(clean);
+  const nzName = toNZName(parsed.name);
+  const nzSearch = toNZName(parsed.searchTerm);
+  const item = {
+    name: nzName.charAt(0).toUpperCase() + nzName.slice(1),
+    totalQty: parseQty(parsed.quantity) || 1,
+    unit: parsed.unit,
+    category: categoriseItem(nzName),
+    searchTerm: nzSearch,
+    isCustom: true,
+    ...(recipe ? { recipeSays: recipe } : {}),
+  };
   return mutateList((row) => {
-    if (row.custom.some((i) => i.name.toLowerCase() === clean.toLowerCase() && !row.checked[itemKey(i)])) return;
-    row.custom.push({
-      name: clean,
-      totalQty: 1,
-      unit: "",
-      category: category ?? categorise(clean),
-      searchTerm: clean.toLowerCase(),
-      isCustom: true,
-      ...(recipe ? { recipeSays: recipe } : {}),
-    });
+    if (row.custom.some((i) => i.searchTerm.toLowerCase() === item.searchTerm.toLowerCase() && !row.checked[itemKey(i)])) return;
+    row.custom.push(item);
   });
 }
 

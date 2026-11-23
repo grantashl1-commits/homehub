@@ -26,3 +26,18 @@ Verified at 1180×820 (iPad), 1366×768 (Chromebook) and 1920×1080 (wall).
   their character did (home, Me, calendar, reflection, celebrations).
 - Photos are cropped square and shrunk to about 8KB, stored on the screen
   with the rest of the family settings. Picking a character switches back.
+
+## Phase 2 — SIGNAL/PointPals connector reconciliation (in progress)
+
+- Audited the hub connectors against SIGNAL and PointPals `origin/main`:
+  week-key format (`YYYY-Www`), `itemKey` algorithm and meal-plan shape all
+  already match. PointPals `pointpalsAward` split math and RLS (a parent can
+  award via the publishable key) also match.
+- Fixed `signalAddItem` to shape manual items exactly as SIGNAL's "add item"
+  does: ported SIGNAL's `parseIngredient`/`toNZName`/`categoriseItem`/`parseQty`
+  into `src/lib/signal-parity.ts`, so `name`/`totalQty`/`unit`/`category`/
+  `searchTerm` (and therefore the shared `itemKey`) line up. Round-trip tests
+  need live SIGNAL/PointPals logins (pending Phase 1 connection).
+- Known gap: the hub's list reads only SIGNAL's `custom_items`; SIGNAL's
+  meal-plan-derived ingredients aren't persisted, so they don't appear on the
+  hub yet.
