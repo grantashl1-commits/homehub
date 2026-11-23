@@ -1,5 +1,21 @@
 # Progress
 
+## 24 Nov 2026: backup and restore
+
+- **Parent → Settings → Backup**: "Save a backup" downloads one JSON file with
+  the family, profile photos, notes, habits, check-ins, claims, reflections,
+  shopping list, kid plans and settings — plus the voice notes, doodles and
+  slideshow photos that live in IndexedDB.
+- "Restore from a file" puts all of it back, so a screen can move to a new web
+  address (`localhost` → the Vercel URL) or a new device while everything still
+  lives in the browser. The hub key is deliberately left out of the file and
+  the screen's own key is kept; guest mode is never restored.
+- Media over 8 MB each (a long slideshow video) is skipped and counted in the
+  toast so the file stays a sensible size.
+- Verified end to end in a browser: export, wipe, restore — family, the note's
+  voice blob, and the photo all came back, and the screen's own hub key was
+  kept.
+
 ## 24 Nov 2026: v1 "glow-up"
 
 Built the whole app in one pass:
