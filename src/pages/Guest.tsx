@@ -3,6 +3,7 @@ import QRCode from "qrcode";
 import { motion } from "motion/react";
 import { Flame, Home, LogOut, MapPin, Refrigerator, Wifi } from "lucide-react";
 import { useHub } from "@/lib/store";
+import { clearGuestOnly } from "@/lib/guest";
 import { useNow } from "@/lib/hooks";
 import { formatDateLong, formatTime } from "@/lib/time";
 import { describeWeather, useWeather } from "@/lib/integrations/weather";
@@ -10,7 +11,7 @@ import { PinPad } from "@/components/PinPad";
 import { Sheet } from "@/components/ui";
 
 /** What Airbnb guests see. No family data is read or shown here. */
-export default function Guest() {
+export default function Guest({ guestOnly = false }: { guestOnly?: boolean }) {
   const s = useHub((x) => x.settings);
   const update = useHub((x) => x.updateSettings);
   const now = useNow();
@@ -108,7 +109,12 @@ export default function Guest() {
           reason="Enter the PIN to leave guest mode"
           onSuccess={() => {
             setExiting(false);
-            update({ guestMode: false });
+            if (guestOnly) {
+              clearGuestOnly();
+              window.location.reload();
+            } else {
+              update({ guestMode: false });
+            }
           }}
         />
       </Sheet>

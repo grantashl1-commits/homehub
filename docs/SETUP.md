@@ -66,6 +66,14 @@ the "Add to Google" button falls back to the pre-filled manual link.
 5. **Settings**: bin day, te reo, NZ school dates, night hours, Wi-Fi and
    guidebook for guest mode.
 
+### Guest-only screen (Airbnb)
+
+For a screen left in the let house, use **Parent → Settings → "Set up as
+guest-only screen"**. It saves the guidebook, Wi-Fi and your PIN to a separate
+config, wipes that screen's family data, and reloads into a guidebook-only app
+that never loads SIGNAL/PointPals/calendar. Leaving it again (hold the top-left
+corner, then the PIN) returns the screen to the family setup.
+
 ## 3. Local development
 
 ```bash

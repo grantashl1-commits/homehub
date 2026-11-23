@@ -1,9 +1,10 @@
-import { Suspense, lazy, useEffect } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Toaster } from "sonner";
 import { useHub } from "@/lib/store";
 import { startSignal } from "@/lib/integrations/signal";
 import { startPointPals } from "@/lib/integrations/pointpals";
+import { getGuestConfig, isGuestOnly } from "@/lib/guest";
 import { AppShell } from "@/components/AppShell";
 import { CelebrationLayer } from "@/components/Celebrate";
 import { ParentPinPrompt } from "@/components/PinPad";
@@ -24,17 +25,34 @@ const Welcome = lazy(() => import("@/pages/Welcome"));
 export default function App() {
   const setupDone = useHub((s) => s.settings.setupDone);
   const guestMode = useHub((s) => s.settings.guestMode);
+  const [guestOnly] = useState(isGuestOnly);
 
   useEffect(() => {
-    // Guests never get family data, so the connectors don't even start.
+    if (guestOnly) {
+      // A guest-only screen loads just the guidebook, Wi-Fi and owner PIN into
+      // settings — it never starts the SIGNAL/PointPals connectors.
+      const cfg = getGuestConfig();
+      if (cfg) {
+        useHub.getState().updateSettings({
+          guidebookUrl: cfg.guidebookUrl,
+          wifiName: cfg.wifiName,
+          wifiPassword: cfg.wifiPassword,
+          houseGuide: cfg.houseGuide,
+          ...(cfg.pinHash && cfg.pinSalt ? { pinHash: cfg.pinHash, pinSalt: cfg.pinSalt } : {}),
+        });
+      }
+      return;
+    }
     if (guestMode) return;
     startSignal();
     startPointPals();
-  }, [guestMode]);
+  }, [guestOnly, guestMode]);
 
   return (
     <Suspense fallback={<div className="paper-bg h-[100dvh]" />}>
-      {guestMode ? (
+      {guestOnly ? (
+        <Guest guestOnly />
+      ) : guestMode ? (
         <Guest />
       ) : !setupDone ? (
         <Welcome />

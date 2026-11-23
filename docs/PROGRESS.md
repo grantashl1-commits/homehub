@@ -92,4 +92,9 @@ Verified at 1180×820 (iPad), 1366×768 (Chromebook) and 1920×1080 (wall).
   into `api/parse-ics.ts` so it's testable.
 - Rate-limited `/api/snap` (10/min per hub key) on top of the existing ~4MB
   image cap.
-- Still to do: the guest-only device setup and a Lighthouse pass.
+- Added a guest-only device mode (`src/lib/guest.ts`): Parent → Settings →
+  "Set up as guest-only screen" saves the guidebook/Wi-Fi/owner-PIN to a
+  separate config, wipes this screen's family data, and reloads into a
+  guidebook-only app that never starts the SIGNAL/PointPals connectors.
+  Leaving needs the owner PIN.
+- Still to do: a Lighthouse pass.

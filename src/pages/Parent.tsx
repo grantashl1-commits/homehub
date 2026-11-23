@@ -27,6 +27,7 @@ import type { Claim, KidPlan, Member } from "@/lib/types";
 import { pointpalsAward, pointpalsConfigured, pointpalsSignIn, pointpalsSignOut, usePointPals } from "@/lib/integrations/pointpals";
 import { signalConfigured, signalSignIn, signalSignOut, useSignal } from "@/lib/integrations/signal";
 import { hubFetch } from "@/lib/integrations/hub-api";
+import { saveGuestConfig, setGuestOnly } from "@/lib/guest";
 import { EXPENSE_CATEGORIES, notionAction, useNotion } from "@/lib/integrations/notion";
 import { useCalendar } from "@/lib/integrations/calendar";
 import { Avatar } from "@/components/Avatar";
@@ -944,6 +945,35 @@ function SettingsTab() {
         </div>
         <BigButton tone="sage" size="lg" className="mt-4" onClick={() => update({ guestMode: true })}>
           Turn on guest mode
+        </BigButton>
+        <BigButton
+          tone="white"
+          size="md"
+          className="mt-2"
+          onClick={() => {
+            if (
+              !window.confirm(
+                "Turn this into a guest-only screen? It wipes this screen's family data and shows only the guidebook and Wi-Fi. Your PIN still lets you leave it.",
+              )
+            )
+              return;
+            saveGuestConfig({
+              guidebookUrl: s.guidebookUrl,
+              wifiName: s.wifiName,
+              wifiPassword: s.wifiPassword,
+              houseGuide: s.houseGuide,
+              ...(s.pinHash && s.pinSalt ? { pinHash: s.pinHash, pinSalt: s.pinSalt } : {}),
+            });
+            setGuestOnly(true);
+            try {
+              localStorage.removeItem("homehub-state");
+            } catch {
+              /* ignore */
+            }
+            window.location.reload();
+          }}
+        >
+          Set up as guest-only screen
         </BigButton>
       </div>
 
