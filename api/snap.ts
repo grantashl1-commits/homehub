@@ -60,27 +60,38 @@ export async function POST(request: Request): Promise<Response> {
   const mediaType = ["image/jpeg", "image/png", "image/webp"].includes(body.mediaType ?? "") ? body.mediaType! : "image/jpeg";
   const today = /^\d{4}-\d{2}-\d{2}$/.test(body.today ?? "") ? body.today! : nzToday();
 
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "x-api-key": key,
-      "anthropic-version": "2023-06-01",
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 1500,
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "image", source: { type: "base64", media_type: mediaType, data: image } },
-            { type: "text", text: PROMPT(today) },
-          ],
-        },
-      ],
-    }),
-  });
+  let res: Response;
+  try {
+    res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": key,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 1500,
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "image", source: { type: "base64", media_type: mediaType, data: image } },
+              { type: "text", text: PROMPT(today) },
+            ],
+          },
+        ],
+      }),
+      // A photo read is quick; don't leave a parent staring at "Reading…" for a minute.
+      signal: AbortSignal.timeout(45_000),
+    });
+  } catch (e) {
+    const timedOut = e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError");
+    return json(
+      { error: timedOut ? "The reader took too long. Try again with a smaller, closer photo." : "Couldn't reach the reader. Check the connection and try again." },
+      timedOut ? 504 : 502,
+    );
+  }
   const data = (await res.json().catch(() => ({}))) as {
     content?: { type: string; text?: string }[];
     error?: { message?: string };
