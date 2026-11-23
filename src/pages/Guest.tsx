@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { motion } from "motion/react";
-import { Flame, Home, LogOut, MapPin, Refrigerator, Wifi } from "lucide-react";
+import { Flame, Home, Lock, LogOut, MapPin, Refrigerator, Wifi } from "lucide-react";
 import { useHub } from "@/lib/store";
 import { useNow } from "@/lib/hooks";
 import { formatDateLong, formatTime } from "@/lib/time";
@@ -21,6 +21,16 @@ export default function Guest() {
   const [exiting, setExiting] = useState(false);
   const hold = useRef<number | undefined>(undefined);
   const w = weather.data ? describeWeather(weather.data.code, weather.data.isDay) : null;
+  const hasPin = !!s.pinHash;
+
+  /** Owners leave through the PIN. With no PIN set there is nothing to prove, so just leave. */
+  const leaveGuestMode = () => {
+    if (!hasPin) {
+      update({ guestMode: false });
+      return;
+    }
+    setExiting(true);
+  };
 
   useEffect(() => {
     const esc = (v: string) => v.replace(/([\\;,:"])/g, "\\$1");
@@ -41,7 +51,7 @@ export default function Guest() {
       <button
         type="button"
         aria-label="Owner menu (hold)"
-        onPointerDown={() => (hold.current = window.setTimeout(() => setExiting(true), 1600))}
+        onPointerDown={() => (hold.current = window.setTimeout(leaveGuestMode, 1600))}
         onPointerUp={() => window.clearTimeout(hold.current)}
         onPointerLeave={() => window.clearTimeout(hold.current)}
         className="absolute left-0 top-0 size-[6rem] opacity-0"
@@ -99,6 +109,15 @@ export default function Guest() {
         </div>
       </div>
       <p className="mt-5 text-center text-[1.2rem] font-bold text-ink-3">Need anything? Message us through Airbnb and we'll get straight back to you.</p>
+      <button
+        type="button"
+        onClick={leaveGuestMode}
+        aria-label={hasPin ? "Owners: enter the PIN to leave guest mode" : "Leave guest mode"}
+        className="tap absolute bottom-[1.6rem] right-[1.6rem] z-10 flex items-center gap-2 rounded-full bg-white/85 px-4 py-2.5 text-[1.15rem] font-black text-ink-3 shadow-[var(--shadow-soft)] ring-1 ring-black/5 backdrop-blur"
+      >
+        <Lock className="size-4" />
+        Owners
+      </button>
 
       <Sheet open={!!open} onOpenChange={(o) => !o && setOpen(null)} title={sections.find((x) => x.key === open)?.title ?? ""}>
         <p className="whitespace-pre-line text-[1.6rem] font-bold leading-relaxed">{open ? s.houseGuide[open] : ""}</p>
