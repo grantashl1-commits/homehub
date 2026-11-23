@@ -84,11 +84,12 @@ Verified at 1180×820 (iPad), 1366×768 (Chromebook) and 1920×1080 (wall).
 
 ## Phase 6 — harden/polish (in progress)
 
-- Added vitest (`npm test`) with 11 passing tests: `isoWeekKey` (matches
+- Added vitest (`npm test`) with 16 passing tests: `isoWeekKey` (matches
   SIGNAL's week key), SIGNAL shopping-item `itemKey` parity
-  (`parseIngredient`/`toNZName`/`categoriseItem`), and `nz.ts`
-  (`sleepsUntil`, `nzCalendarEvents`, `binReminder`).
+  (`parseIngredient`/`toNZName`/`categoriseItem`), `nz.ts` (`sleepsUntil`,
+  `nzCalendarEvents`, `binReminder`), and `parseIcs` (all-day, timed,
+  weekly-recurring, cancelled, and NZ `TZID` events). `parseIcs` was pulled
+  into `api/parse-ics.ts` so it's testable.
 - Rate-limited `/api/snap` (10/min per hub key) on top of the existing ~4MB
   image cap.
-- Still to do: a `parseIcs` test (needs the pure parser pulled out of
-  `api/calendar.ts`), the guest-only device setup, and a Lighthouse pass.
+- Still to do: the guest-only device setup and a Lighthouse pass.
