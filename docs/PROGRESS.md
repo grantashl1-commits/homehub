@@ -1,5 +1,18 @@
 # Progress
 
+## 24 Nov 2026: the house guide, on the screen
+
+- Guests used to get a QR code to a PDF. The guest screen's house guide is now
+  an interactive guide: a rail of sections down the left, one section at a time
+  on the right, sized for touching and readable from a step back. Read-aloud on
+  every section; the PDF reader stays as the fallback for a property that has no
+  guide yet.
+- Content is transcribed from the printed 5 Lens Way guide
+  (`src/content/guides.ts`): arrival and the lockbox, Wi-Fi & TV, the house,
+  where you'll sleep, amenities, finding us, things to know, heating & water,
+  sauna & ice bath, the spa pool, the reformer/gym/bikes, house rules,
+  emergencies, things to do, places to eat, cafés, places to drink, check-out
+  and coming back.
 ## 24 Nov 2026: a way back out of guest mode
 
 - Guest mode's only exit was an invisible 6 rem button in the top-left corner

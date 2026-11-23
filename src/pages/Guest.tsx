@@ -8,6 +8,8 @@ import { formatDateLong, formatTime } from "@/lib/time";
 import { describeWeather, useWeather } from "@/lib/integrations/weather";
 import { PinPad } from "@/components/PinPad";
 import { Sheet } from "@/components/ui";
+import { HouseGuide } from "@/components/HouseGuide";
+import { DEFAULT_GUIDE } from "@/content/guides";
 
 /** What Airbnb guests see. No family data is read or shown here. */
 export default function Guest() {
@@ -88,7 +90,6 @@ export default function Guest() {
         </motion.div>
         <motion.button
           type="button"
-          disabled={!s.guidebookUrl}
           onClick={() => setReading(true)}
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -98,7 +99,7 @@ export default function Guest() {
           <p className="text-[3rem] leading-none">📖</p>
           <p className="font-display text-[2.4rem] font-black leading-none">House guidebook</p>
           {guideQr ? <img src={guideQr} alt="Scan to open the guidebook" className="w-[13rem] rounded-xl" /> : <div className="grid h-[13rem] w-[13rem] place-items-center rounded-xl bg-white/15 text-[1.2rem] font-bold">Add the link in settings</div>}
-          {s.guidebookUrl && <span className="rounded-full bg-white px-5 py-2 text-[1.4rem] font-black text-[#5f7a64]">Tap to read it here</span>}
+          <span className="rounded-full bg-white px-5 py-2 text-[1.4rem] font-black text-[#5f7a64]">Tap to read it here</span>
           <p className="text-[1.3rem] font-bold opacity-85">or scan with your phone to take it with you</p>
         </motion.button>
         <div className="grid grid-cols-2 gap-[1.4rem]">
@@ -132,7 +133,7 @@ export default function Guest() {
       <Sheet open={!!open} onOpenChange={(o) => !o && setOpen(null)} title={sections.find((x) => x.key === open)?.title ?? ""}>
         <p className="whitespace-pre-line text-[1.6rem] font-bold leading-relaxed">{open ? s.houseGuide[open] : ""}</p>
       </Sheet>
-      {reading && s.guidebookUrl && <GuideReader url={s.guidebookUrl} onClose={() => setReading(false)} />}
+      {reading && (DEFAULT_GUIDE ? <HouseGuide guide={DEFAULT_GUIDE} onClose={() => setReading(false)} /> : s.guidebookUrl ? <GuideReader url={s.guidebookUrl} onClose={() => setReading(false)} /> : null)}
       <Sheet open={exiting} onOpenChange={setExiting} title="Owners only" className="w-[min(36rem,94vw)]">
         <PinPad
           reason="Enter the PIN to leave guest mode"
