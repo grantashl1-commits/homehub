@@ -865,6 +865,7 @@ function SettingsTab() {
   const [pin2, setPin2] = useState("");
   const [busyBackup, setBusyBackup] = useState(false);
   const backupInput = useRef<HTMLInputElement>(null);
+  const household = useAccount((x) => x.household);
 
   const saveBackup = async () => {
     setBusyBackup(true);
@@ -884,11 +885,18 @@ function SettingsTab() {
   };
 
   const restoreFrom = async (file: File) => {
-    if (!window.confirm(`Restore “${file.name}”? It replaces this screen's family, notes and settings.`)) return;
+    // On a signed-in screen the restored document is saved to the family account,
+    // so every other screen and phone in the family changes too.
+    const shared = household
+      ? ` — and because this screen is signed in to ${household.name}, every other screen in the family changes too.`
+      : "";
+    if (!window.confirm(`Restore “${file.name}”? It replaces this screen's family, notes and settings${shared}`)) return;
     setBusyBackup(true);
     try {
       const summary = await restoreBackup(file);
-      toast.success(`Restored ${summary.members} people and ${summary.notes} notes. Reloading…`);
+      toast.success(
+        `Restored ${summary.members} people and ${summary.notes} notes. ${household ? "Saving to the family…" : "Reloading…"}`,
+      );
       window.setTimeout(() => window.location.reload(), 900);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Couldn't restore that file");
@@ -1002,6 +1010,7 @@ function SettingsTab() {
         <p className="mb-3 text-[1.2rem] font-bold text-ink-2">
           Family, profile photos, notes, habits and settings in one file — for moving to a new web address or a new screen.
           The hub key stays out of it, so enter that again in Connections.
+          {household && ` This screen is signed in to ${household.name}, so a restore changes that family for every screen, not just this one.`}
         </p>
         <div className="flex flex-wrap items-center gap-3">
           <BigButton tone="sky" size="md" disabled={busyBackup} onClick={() => void saveBackup()}>
