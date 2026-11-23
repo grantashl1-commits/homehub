@@ -1,0 +1,21 @@
+name: build
+
+# Runs on every push to main and every pull request, so a broken build or a
+# failing test is visible before it reaches a screen.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
