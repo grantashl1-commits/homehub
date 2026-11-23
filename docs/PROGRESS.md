@@ -58,3 +58,15 @@ Verified at 1180×820 (iPad), 1366×768 (Chromebook) and 1920×1080 (wall).
 - Database: `supabase/migrations/20261123000000_family_accounts.sql`, not
   applied yet. Steps and the new-family checklist are in
   [ACCOUNTS.md](ACCOUNTS.md).
+
+## 24 Nov 2026: no more blank screens after an update
+
+- Screens pick up a new version by themselves (and check hourly), instead
+  of running old code until someone force-refreshes. That's why the badge fix
+  and the Parent area didn't show up after the last deploy: an old copy tried
+  to load a Parent file that no longer existed, and the page went blank.
+- If a screen still can't load, it reloads once on its own, then shows
+  "Home Hub has updated" or a kind error with Reload / Go home, never a blank page.
+- Family sync remembers changes made just before a reload and saves them first.
+- Guest mode: tap the House guidebook card to read the guide (PDF or web page)
+  full screen, with "Open in a new tab" if the site won't show inside the hub.

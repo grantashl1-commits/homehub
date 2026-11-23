@@ -198,7 +198,11 @@ export async function resetPassword(email: string) {
 export async function signOut({ clearScreen = false } = {}) {
   stopSync();
   await sb().auth.signOut();
-  if (clearScreen) useHub.getState().resetAll();
+  if (clearScreen) {
+    // A cleared screen must never upload its empty state over the family's.
+    markDirty(null);
+    useHub.getState().resetAll();
+  }
 }
 
 export async function createFamily(name: string) {
@@ -241,6 +245,24 @@ let saveTimer: number | undefined;
 let revision = 0;
 let applying = false;
 let syncingId: string | undefined;
+
+/** Survives a reload: this screen has changes the family copy hasn't got yet. */
+const DIRTY = "homehub-sync-dirty";
+function markDirty(id: string | null) {
+  try {
+    if (id) localStorage.setItem(DIRTY, id);
+    else localStorage.removeItem(DIRTY);
+  } catch {
+    /* private mode */
+  }
+}
+function dirtyFor(id: string): boolean {
+  try {
+    return localStorage.getItem(DIRTY) === id;
+  } catch {
+    return false;
+  }
+}
 
 function apply(doc: Doc) {
   applying = true;
@@ -301,6 +323,7 @@ async function save() {
     return;
   }
   if (data) revision = Number(data.revision);
+  if (saveTimer === undefined) markDirty(null);
   useAccount.setState({ sync: "saved", syncedAt: Date.now(), error: undefined });
 }
 
@@ -316,11 +339,15 @@ async function startSync(h: HouseholdRef) {
   syncingId = h.id;
   revision = 0;
   useAccount.setState({ sync: "loading" });
-  await pull(true);
+  // Changes from just before a reload or going offline go up first, rather
+  // than being replaced by the family copy.
+  if (dirtyFor(h.id)) await save();
+  else await pull(true);
 
   unsubStore = useHub.subscribe((state, prev) => {
     if (applying || !syncingId) return;
     if (SYNCED_KEYS.every((k) => state[k] === prev[k])) return;
+    markDirty(syncingId);
     window.clearTimeout(saveTimer);
     saveTimer = window.setTimeout(() => void save(), 1200);
   });
