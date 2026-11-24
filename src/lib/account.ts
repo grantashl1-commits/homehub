@@ -45,6 +45,7 @@ const SYNCED_KEYS = [
   "marbles",
   "familyJar",
   "localList",
+  "listCounts",
   "kidPlans",
   "mealHearts",
   "localDinners",
@@ -390,3 +391,30 @@ export function useHubAccess(): string | null {
   const hubKey = useHub((s) => s.settings.hubKey);
   return household ?? (hubKey ? "key" : null);
 }
+
+/* ── Shared media (voice notes, doodles, photos) ───────────────────── */
+
+const MEDIA_BUCKET = "hub-media";
+
+/** Copies a blob made on this screen to the family's storage, so other screens can play it. */
+export async function uploadFamilyMedia(id: string, blob: Blob): Promise<void> {
+  const h = useAccount.getState().household;
+  if (!h || !accountsConfigured) return;
+  const { error } = await sb().storage.from(MEDIA_BUCKET).upload(`${h.id}/${id}`, blob, { contentType: blob.type || undefined, upsert: true });
+  if (error) throw error;
+}
+
+/** Fetches a blob another screen in the family made. Undefined if it isn't there. */
+export async function downloadFamilyMedia(id: string): Promise<Blob | undefined> {
+  const h = useAccount.getState().household;
+  if (!h || !accountsConfigured) return undefined;
+  const { data, error } = await sb().storage.from(MEDIA_BUCKET).download(`${h.id}/${id}`);
+  return error ? undefined : (data ?? undefined);
+}
+
+export async function removeFamilyMedia(id: string): Promise<void> {
+  const h = useAccount.getState().household;
+  if (!h || !accountsConfigured) return;
+  await sb().storage.from(MEDIA_BUCKET).remove([`${h.id}/${id}`]);
+}
+

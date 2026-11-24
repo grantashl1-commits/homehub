@@ -13,13 +13,15 @@ import { notionAction, useNotion } from "@/lib/integrations/notion";
 import { toast } from "sonner";
 import { recipeImage } from "@/lib/integrations/signal";
 import { describeWeather, useWeather } from "@/lib/integrations/weather";
-import { groceryEmoji, noteColor } from "@/lib/catalog";
+import { noteColor } from "@/lib/catalog";
 import { pal } from "@/lib/pals";
 import type { CalendarEvent, Member } from "@/lib/types";
 import { Avatar } from "@/components/Avatar";
 import { JarProgress, MarbleJar } from "@/components/MarbleJar";
 import { ReadAloud } from "@/components/ui";
 import { cn } from "@/lib/utils";
+import { useGoogleTasks } from "@/lib/integrations/google-tasks";
+import { TaskCard } from "@/components/TaskCard";
 import { sfx } from "@/lib/device";
 
 const SKIES = {
@@ -101,7 +103,7 @@ function Hero() {
 
       <div className="relative mt-4">
         <p className="mb-2.5 text-[1.05rem] font-black uppercase tracking-[0.1em] opacity-60">Who's here?</p>
-        <div className="flex flex-wrap gap-x-5 gap-y-2 pt-1.5">
+        <div className="flex flex-wrap gap-x-3 gap-y-2 pt-1">
           {members.slice(0, 6).map((m) => (
             <WhoButton key={m.id} member={m} />
           ))}
@@ -265,19 +267,25 @@ function WhoButton({ member }: { member: Member }) {
         sfx.pop();
         navigate(`/me/${member.id}`);
       }}
-      className="tap relative rounded-full"
+      className="tap relative rounded-[1.2rem]"
       aria-label={`${member.name}'s zone${waiting ? ` — ${waiting}` : ""}`}
       title={waiting || `${member.name}'s zone`}
     >
-      <Avatar member={member} size={3.7} ring />
-      <span className="mt-1 block max-w-[6.5rem] truncate rounded-full bg-white/80 px-2 text-center text-[1.1rem] font-extrabold text-ink">{member.name}</span>
-      {/* ✉️ new notes for them, ⭐ PointPals jobs still to do. */}
-      <span className="absolute -right-2.5 -top-2 flex flex-col items-end gap-0.5">
-        {unread > 0 && (
-          <span className="flex h-[1.8rem] items-center gap-0.5 rounded-full bg-coral px-1.5 text-[0.95rem] font-black text-white ring-2 ring-white">✉️{unread}</span>
-        )}
-        {todo > 0 && (
-          <span className="flex h-[1.8rem] items-center gap-0.5 rounded-full bg-ink px-1.5 text-[0.95rem] font-black text-white ring-2 ring-white">⭐{todo}</span>
+      <span className="flex items-start gap-1">
+        <span className="flex flex-col items-center">
+          <Avatar member={member} size={3.7} ring />
+          <span className="mt-1 block max-w-[6.5rem] truncate rounded-full bg-white/80 px-2 text-center text-[1.1rem] font-extrabold text-ink">{member.name}</span>
+        </span>
+        {/* Beside the face, not on it: ✉️ new notes for them, ⭐ PointPals jobs still to do. */}
+        {(unread > 0 || todo > 0) && (
+          <span className="flex flex-col items-start gap-1 pt-0.5">
+            {unread > 0 && (
+              <span className="flex h-[1.8rem] items-center gap-0.5 rounded-full bg-coral px-1.5 text-[0.95rem] font-black text-white shadow-sm">✉️{unread}</span>
+            )}
+            {todo > 0 && (
+              <span className="flex h-[1.8rem] items-center gap-0.5 rounded-full bg-ink px-1.5 text-[0.95rem] font-black text-white shadow-sm">⭐{todo}</span>
+            )}
+          </span>
         )}
       </span>
     </button>
@@ -432,7 +440,7 @@ function ListTile() {
       <div className="mt-3 flex min-h-0 flex-1 flex-wrap content-start gap-2 overflow-hidden">
         {todo.slice(0, 18).map((i) => (
           <span key={i.id} className="rounded-full bg-white px-3 py-1 text-[1.15rem] font-extrabold">
-            {groceryEmoji(i.name)} {i.name}
+            {i.name}
           </span>
         ))}
       </div>
@@ -444,24 +452,32 @@ function NotesTile() {
   const notes = useHub(useShallow((s) => s.notes.filter((n) => !n.doneAt)));
   const members = useHub((s) => s.members);
   const unread = useHub((s) => new Set(s.members.flatMap((m) => unreadNotesFor(s.notes, m.id).map((n) => n.id))).size);
-  const shown = notes.slice(0, 4);
+  const { tasks } = useGoogleTasks();
+  const navigate = useNavigate();
+  // Google tasks stay on the fridge until peeled off, so they come first.
+  const shownTasks = tasks.slice(0, 2);
+  const shown = notes.slice(0, Math.max(0, 4 - shownTasks.length));
+  const total = notes.length + tasks.length;
   return (
     <Link to="/notes" onClick={() => sfx.tap()} className="tap fridge relative flex min-h-[18rem] flex-col overflow-hidden rounded-[2rem] p-5 shadow-[var(--shadow-soft)] ring-1 ring-black/5 md:min-h-0">
       <div className="flex items-center justify-between gap-2">
         <p className="text-[1.15rem] font-black uppercase tracking-[0.08em] text-lilac-ink">Fridge notes</p>
         <span className="rounded-full bg-lilac px-3 py-0.5 text-[1.1rem] font-black text-white">
-          {notes.length} note{notes.length === 1 ? "" : "s"}
+          {total} note{total === 1 ? "" : "s"}
           {unread > 0 ? ` · ${unread} new` : ""}
         </span>
       </div>
       <div className="mt-2 grid min-h-0 flex-1 grid-cols-2 content-start gap-3 overflow-hidden px-1.5 pb-2 pt-2.5">
+        {shownTasks.map((t) => (
+          <TaskCard key={`gt-${t.id}`} task={t} small onOpen={() => navigate("/notes")} />
+        ))}
         {shown.map((n, i) => {
           const c = noteColor(n.color);
           const from = members.find((m) => m.id === n.from);
           return (
             <motion.div
               key={n.id}
-              className={cn("relative rounded-[0.6rem] p-3 pt-4 shadow-[0_8px_16px_-8px_rgb(0_0_0/0.3)]", i >= 2 && "md:hidden")}
+              className={cn("relative rounded-[0.6rem] p-3 pt-4 shadow-[0_8px_16px_-8px_rgb(0_0_0/0.3)]", i + shownTasks.length >= 2 && "md:hidden")}
               style={{ background: c.bg, color: c.ink, rotate: [-3, 2.5, 2, -2][i % 4] }}
               whileHover={{ rotate: 0 }}
             >
@@ -473,11 +489,11 @@ function NotesTile() {
             </motion.div>
           );
         })}
-        {notes.length === 0 && <p className="col-span-2 pt-4 text-[1.35rem] font-bold text-ink-2">Leave the first note!</p>}
+        {total === 0 && <p className="col-span-2 pt-4 text-[1.35rem] font-bold text-ink-2">Leave the first note!</p>}
       </div>
-      {notes.length > 0 && (
+      {total > 0 && (
         <p className="mt-2 text-right text-[1.1rem] font-black text-lilac-ink">
-          View all {notes.length} →
+          View all {total} →
         </p>
       )}
     </Link>

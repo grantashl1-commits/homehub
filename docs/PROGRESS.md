@@ -365,3 +365,36 @@ The printable habit worksheet as a game, from each kid's Me page
   shopping list says "All stocked up".
 - Speed: List, Meals, Calendar, Notes and Reflection load in the background
   after the home screen (main bundle 516KB → 423KB).
+
+## 25 Nov 2026: badges beside faces, list regulars, calendar people, shared voice notes
+
+- Home: the ✉️ and ⭐ badges sit beside each face instead of on the photo.
+- Shopping list: no emoji on items, headings or the home card. The preset
+  "Tap to add" pictures are gone; "Most often added" shows the family's own
+  regulars (anything put on the list by hand at least twice, most first),
+  counted in `listCounts` and synced with the family.
+- Calendar people: an emoji only matches someone when it stands alone, so
+  👩‍🦳👨‍🦳 Grandma + Grandad no longer lands on Mum and Dad (stays Family).
+  A girl/boy/child emoji no child has claimed goes to all the children.
+- Voice notes, doodles and photos are copied to the family's private storage
+  (bucket `hub-media`, migration 20261125000000_family_media.sql), so a note
+  recorded on the tablet plays on the desktop. Each screen shares its older
+  recordings once when signed in. Needs the migration run on the hub project.
+
+## 25 Nov 2026: Google Tasks on the fridge
+
+- Google Tasks (Google Calendar → Create → Task) aren't in the iCal feed, so
+  /api/google-tasks reads them with a grown-up's one-time Google OK (OAuth,
+  `tasks` scope; refresh token encrypted in household_secrets as
+  GOOGLE_TASKS_REFRESH_TOKEN). Parent → Connections → Google Tasks.
+- Each open task is a "☑️ To do" card on the fridge (Notes page, first) and
+  on the home Fridge notes card: title, due date (red when overdue), notes.
+  Open it for the full description; "Done, peel it off" marks it complete in
+  Google. Counted in the fridge totals and the Notes tab badge.
+- Google's Tasks API gives the title, notes and one date ("due"); Calendar's
+  separate start date isn't in the API, so the card shows the due date.
+- Needs GOOGLE_OAUTH_CLIENT_ID / SECRET in Vercel (docs/SETUP.md → Google Tasks).
+- Vercel's Hobby plan allows 12 functions and counts every file in /api not
+  starting with "_" (tests included). Adding google-tasks made 13 and the
+  deploy failed, so api tests moved to tests/api/ and parse-ics became
+  _parse-ics. Keep helpers "_"-prefixed and tests out of /api.

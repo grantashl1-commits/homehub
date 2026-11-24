@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseIcs } from "../../api/parse-ics";
+import { parseIcs } from "../../api/_parse-ics";
 
 /** Wrap event lines in a minimal VCALENDAR. */
 function ics(...lines: string[]): string {

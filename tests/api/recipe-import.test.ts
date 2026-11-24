@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { POST } from "./recipe-import";
+import { POST } from "../../api/recipe-import";
 
 const PAGE = `<html><head><meta property="og:image" content="https://example.org/beans.jpg"></head><body>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Recipe","name":"One-pot Mexican beans and rice",

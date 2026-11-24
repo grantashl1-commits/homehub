@@ -4,7 +4,8 @@ import { Toaster } from "sonner";
 import { useHub } from "@/lib/store";
 import { startSignal } from "@/lib/integrations/signal";
 import { startPointPals } from "@/lib/integrations/pointpals";
-import { startAccount } from "@/lib/account";
+import { startAccount, useAccount } from "@/lib/account";
+import { shareOlderMedia } from "@/lib/media";
 import { AppShell } from "@/components/AppShell";
 import { CelebrationLayer } from "@/components/Celebrate";
 import { ParentPinPrompt } from "@/components/PinPad";
@@ -35,6 +36,11 @@ export default function App() {
 
   // The family account keeps this screen's hub data in step with the others.
   useEffect(() => startAccount(), []);
+  // Once signed in to the family, share this screen's older recordings and photos.
+  const familyId = useAccount((s) => s.household?.id);
+  useEffect(() => {
+    if (familyId) void shareOlderMedia().catch(() => {});
+  }, [familyId]);
   useEffect(() => {
     const t = window.setTimeout(() => {
       for (const load of [loadList, loadMeals, loadCalendar, loadNotes, loadReflect]) void load().catch(() => {});

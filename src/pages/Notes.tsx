@@ -5,7 +5,10 @@ import { ArrowLeft, Check, Mic, Pencil, Plus } from "lucide-react";
 import { useHub } from "@/lib/store";
 import { NOTE_COLORS, REACTIONS, STICKERS, noteColor } from "@/lib/catalog";
 import { speak, sfx } from "@/lib/device";
-import { timeAgo } from "@/lib/time";
+import { dateKey, timeAgo } from "@/lib/time";
+import { completeGoogleTask, dueLabel, useGoogleTasks, type GoogleTask } from "@/lib/integrations/google-tasks";
+import { TaskCard } from "@/components/TaskCard";
+import { toast } from "sonner";
 import type { Member, NoteColor, NoteKind, PostIt } from "@/lib/types";
 import { Avatar } from "@/components/Avatar";
 import { AudioPlayer, VoiceRecorder } from "@/components/Voice";
@@ -20,6 +23,8 @@ export default function Notes() {
   const members = useHub((s) => s.members);
   const [filter, setFilter] = useState<string>("all");
   const [open, setOpen] = useState<PostIt | null>(null);
+  const { tasks } = useGoogleTasks();
+  const [openTask, setOpenTask] = useState<GoogleTask | null>(null);
   const [composing, setComposing] = useState(params.get("add") === "1");
   const [fromPreset] = useState(params.get("from") ?? undefined);
 
@@ -63,11 +68,12 @@ export default function Notes() {
       <div className="fridge relative min-h-0 flex-1 overflow-hidden rounded-[2.2rem] shadow-[inset_0_2px_10px_rgb(0_0_0/0.06)] ring-1 ring-black/5 max-md:min-h-[60vh] max-md:overflow-visible">
         <div className="absolute right-6 top-1/2 h-[40%] w-[1.1rem] -translate-y-1/2 rounded-full bg-gradient-to-b from-white to-[#ddd6cb] shadow-[0_2px_6px_rgb(0_0_0/0.15)] max-md:hidden" />
         <div className="h-full overflow-y-auto p-7 pr-14 no-scrollbar max-md:p-4 max-md:pb-24">
-          {visible.length === 0 ? (
+          {visible.length === 0 && tasks.length === 0 ? (
             <EmptyState emoji="🧲" title="The fridge is empty!" body="Leave a note for someone you love." />
           ) : (
             <div className="grid grid-cols-4 gap-6 max-md:grid-cols-2 max-md:gap-4">
               <AnimatePresence>
+                {filter === "all" && tasks.map((t) => <TaskCard key={`gt-${t.id}`} task={t} onOpen={() => setOpenTask(t)} />)}
                 {visible.map((n) => (
                   <NoteCard key={n.id} note={n} members={members} onOpen={() => setOpen(n)} />
                 ))}
@@ -90,8 +96,52 @@ export default function Notes() {
       </div>
 
       <NoteViewer note={open} onClose={() => setOpen(null)} />
+      <TaskViewer task={openTask} onClose={() => setOpenTask(null)} />
       <Composer open={composing} onOpenChange={setComposing} fromPreset={fromPreset} />
     </div>
+  );
+}
+
+function TaskViewer({ task, onClose }: { task: GoogleTask | null; onClose: () => void }) {
+  const [busy, setBusy] = useState(false);
+  if (!task) return null;
+  const due = dueLabel(task.due, dateKey());
+  return (
+    <Sheet open={!!task} onOpenChange={(o) => !o && onClose()} title="To do">
+      <div className="flex flex-col items-center gap-5">
+        <div className="w-full max-w-[36rem] rounded-[0.8rem] bg-white p-7 pt-8 shadow-xl ring-1 ring-black/5">
+          <div className="flex items-start gap-3">
+            <p className="flex-1 font-display text-[3rem] font-black leading-[1.05]">{task.title}</p>
+            <ReadAloud text={`${task.title}. ${due ?? ""}. ${task.notes ?? ""}`} />
+          </div>
+          {due && <p className="mt-2 text-[1.4rem] font-black text-sky-ink">📅 {due}</p>}
+          {task.notes && <p className="mt-3 whitespace-pre-line text-[1.5rem] font-bold leading-snug text-ink-2">{task.notes}</p>}
+          <p className="mt-4 text-[1.05rem] font-bold text-ink-3">From Google Tasks · {task.list}</p>
+        </div>
+        <BigButton
+          tone="sage"
+          size="md"
+          disabled={busy}
+          icon={<Check className="size-7" strokeWidth={3} />}
+          onClick={async () => {
+            setBusy(true);
+            try {
+              await completeGoogleTask(task);
+              sfx.soft();
+              celebrate({ title: "Done!", subtitle: task.title, emoji: "✅" });
+              onClose();
+            } catch (e) {
+              toast.error(e instanceof Error ? e.message : "Google didn't take that");
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          Done, peel it off
+        </BigButton>
+        <p className="text-[1.1rem] font-bold text-ink-3">This ticks it off in Google Tasks too.</p>
+      </div>
+    </Sheet>
   );
 }
 

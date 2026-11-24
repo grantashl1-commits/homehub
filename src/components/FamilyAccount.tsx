@@ -17,6 +17,7 @@ import {
   useAccount,
 } from "@/lib/account";
 import { hubFetch } from "@/lib/integrations/hub-api";
+import { connectGoogleTasks, disconnectGoogleTasks } from "@/lib/integrations/google-tasks";
 import { BigButton } from "@/components/ui";
 import { cn } from "@/lib/utils";
 
@@ -182,7 +183,8 @@ type SecretName =
   | "NOTION_DS_EXPENSES"
   | "NOTION_DS_BILLS"
   | "NOTION_DS_LIFE_ADMIN"
-  | "SLIDESHOW_DRIVE_FOLDER_ID";
+  | "SLIDESHOW_DRIVE_FOLDER_ID"
+  | "GOOGLE_TASKS_REFRESH_TOKEN";
 
 interface ConnectionsResponse {
   householdId: string | null;
@@ -267,6 +269,7 @@ export function FamilyConnections({ onChanged }: { onChanged?: () => void }) {
         Your family's private links. They're encrypted on the hub's server and never sent back to a screen.
         {data.isHome && " Anything not saved here uses the hub's Vercel settings."}
       </p>
+      <GoogleTasksRow connected={!!source("GOOGLE_TASKS_REFRESH_TOKEN")} onChanged={load} />
       {FIELDS.map((f) => (
         <SecretRow
           key={f.name}
@@ -281,6 +284,71 @@ export function FamilyConnections({ onChanged }: { onChanged?: () => void }) {
         />
       ))}
     </div>
+  );
+}
+
+/** Google Tasks: a one-time "allow" in Google rather than a pasted link. */
+function GoogleTasksRow({ connected, onChanged }: { connected: boolean; onChanged: () => void }) {
+  const [busy, setBusy] = useState(false);
+  // Back from Google's consent screen: say how it went, then tidy the address.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const result = q.get("google");
+    if (!result) return;
+    if (result === "connected") toast.success("Google Tasks connected. Tasks will appear on the fridge.");
+    else toast.error(result === "access_denied" ? "Google Tasks wasn't allowed." : "Couldn't connect Google Tasks. Try again.");
+    q.delete("google");
+    window.history.replaceState(null, "", `${window.location.pathname}${q.size ? `?${q}` : ""}`);
+    onChanged();
+  }, [onChanged]);
+
+  return (
+    <Box icon="✅" title="Google Tasks" status={connected ? "Connected" : "Not connected"} ok={connected}>
+      <p className="mb-3 text-[1.2rem] font-bold text-ink-2">
+        Tasks you make in Google Calendar (Create → Task) go on the fridge with their title, date and notes, and stay there until someone peels
+        them off, which ticks them off in Google too. Google keeps tasks out of the calendar link, so this needs a one-time OK from your Google
+        account.
+      </p>
+      <div className="flex flex-wrap gap-3">
+        <BigButton
+          size="md"
+          tone={connected ? "white" : "sky"}
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            try {
+              await connectGoogleTasks();
+            } catch (e) {
+              toast.error(e instanceof Error ? e.message : "Couldn't start connecting");
+              setBusy(false);
+            }
+          }}
+        >
+          {connected ? "Reconnect" : "Connect Google Tasks"}
+        </BigButton>
+        {connected && (
+          <BigButton
+            size="md"
+            tone="white"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              try {
+                await disconnectGoogleTasks();
+                toast("Google Tasks disconnected");
+                onChanged();
+              } catch (e) {
+                toast.error(e instanceof Error ? e.message : "Couldn't disconnect");
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            Disconnect
+          </BigButton>
+        )}
+      </div>
+    </Box>
   );
 }
 

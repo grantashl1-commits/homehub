@@ -29,6 +29,8 @@ export const FAMILY_SECRETS = [
   "NOTION_DS_BILLS",
   "NOTION_DS_LIFE_ADMIN",
   "SLIDESHOW_DRIVE_FOLDER_ID",
+  // Saved by /api/google-tasks after a grown-up connects Google; not pasted in by hand.
+  "GOOGLE_TASKS_REFRESH_TOKEN",
 ] as const;
 export type FamilySecret = (typeof FAMILY_SECRETS)[number];
 

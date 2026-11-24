@@ -31,6 +31,7 @@ Code with the Vercel CLI linked you can also run `vercel env add NAME`.
 | `VITE_SIGNAL_SUPABASE_URL`, `VITE_SIGNAL_SUPABASE_KEY` | SIGNAL shopping list and meal plan | `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` from the signalnz project |
 | `VITE_SIGNAL_SITE_URL` | Where SIGNAL's recipe photos live | `https://signal.mindcast.co.nz` |
 | `VITE_POINTPALS_SUPABASE_URL`, `VITE_POINTPALS_SUPABASE_KEY` | PointPals jobs, marbles and jars | `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` from the point-pals-app project |
+| `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` | Google Tasks on the fridge (tasks aren't in the calendar's iCal feed) | See "Google Tasks" below |
 
 Redeploy after adding `VITE_*` variables (they're baked into the build).
 
@@ -38,6 +39,28 @@ Redeploy after adding `VITE_*` variables (they're baked into the build).
 > ever lives in Vercel; the hub's `/api/calendar` function reads it and
 > checks `HUB_ACCESS_KEY` before answering. If the link has been shared
 > anywhere else, reset it in Google Calendar ("Reset") and update Vercel.
+
+### Google Tasks
+
+Tasks made in Google Calendar (Create → Task) show on the fridge with their
+title, due date and notes until someone peels them off, which ticks them off
+in Google Tasks too. Google doesn't put tasks in the iCal feed, so a grown-up
+allows the hub once:
+
+1. Google Cloud console (the same project as the service account is fine) →
+   APIs & Services → Library → enable **Google Tasks API**.
+2. APIs & Services → OAuth consent screen: External, app name "Home Hub",
+   your email. Add the scope `.../auth/tasks`. Under Test users add the Google
+   account that owns the tasks (e.g. matt.ash.carlson@gmail.com). While the app
+   is in Testing, Google asks again every 7 days; publish it to stop that.
+3. APIs & Services → Credentials → Create credentials → OAuth client ID →
+   Web application. Authorised redirect URI:
+   `https://homehub-drab.vercel.app/api/google-tasks` (add your preview or
+   custom domain too if you use one).
+4. Put the client ID and secret in Vercel as `GOOGLE_OAUTH_CLIENT_ID` and
+   `GOOGLE_OAUTH_CLIENT_SECRET`, and redeploy.
+5. On the hub, signed in to the family account: **Parent → Connections →
+   Google Tasks → Connect Google Tasks**, pick the Google account, Allow.
 
 ## 2. On each screen (once)
 

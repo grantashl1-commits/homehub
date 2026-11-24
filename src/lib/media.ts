@@ -1,9 +1,13 @@
 /**
  * Voice notes, doodles and slideshow photos live as Blobs in IndexedDB on the
  * device (localStorage is far too small). Ids are stored in the app state.
+ * When the screen is signed in to the family account, each blob is also copied
+ * to the family's private storage, so a note recorded on the tablet plays on
+ * the desktop too (fetched once, then kept in that screen's IndexedDB).
  */
-import { createStore, del, get, set } from "idb-keyval";
+import { createStore, del, get, keys, set } from "idb-keyval";
 import { uid } from "./device";
+import { downloadFamilyMedia, removeFamilyMedia, uploadFamilyMedia } from "./account";
 
 const store = createStore("homehub-media", "blobs");
 const urlCache = new Map<string, string>();
@@ -11,11 +15,17 @@ const urlCache = new Map<string, string>();
 export async function saveMedia(blob: Blob): Promise<string> {
   const id = uid("m");
   await set(id, blob, store);
+  void uploadFamilyMedia(id, blob).catch((e) => console.warn("Couldn't copy media to the family", e));
   return id;
 }
 
 export async function getMedia(id: string): Promise<Blob | undefined> {
-  return get<Blob>(id, store);
+  const here = await get<Blob>(id, store);
+  if (here) return here;
+  // Made on another screen: fetch it from the family's storage and keep a copy.
+  const there = await downloadFamilyMedia(id).catch(() => undefined);
+  if (there) await set(id, there, store).catch(() => {});
+  return there;
 }
 
 export async function mediaUrl(id: string): Promise<string | undefined> {
@@ -33,6 +43,7 @@ export async function deleteMedia(id: string): Promise<void> {
   if (url) URL.revokeObjectURL(url);
   urlCache.delete(id);
   await del(id, store);
+  void removeFamilyMedia(id).catch(() => {});
 }
 
 /** Pick the recording format each browser can both record and replay. */
@@ -83,3 +94,38 @@ export async function profilePhoto(file: File, side = 320): Promise<string> {
   bitmap.close();
   return canvas.toDataURL("image/jpeg", 0.82);
 }
+
+const SHARED = "homehub-media-shared";
+
+/**
+ * Copies this screen's older voice notes, doodles and photos to the family's
+ * storage, once each (remembered on this screen), so other screens can play
+ * them. Runs when a family account is signed in.
+ */
+export async function shareOlderMedia(): Promise<void> {
+  let done: string[] = [];
+  try {
+    done = JSON.parse(localStorage.getItem(SHARED) ?? "[]") as string[];
+  } catch {
+    /* fresh list */
+  }
+  const seen = new Set(done);
+  for (const k of await keys(store)) {
+    const id = String(k);
+    if (seen.has(id)) continue;
+    const blob = await get<Blob>(id, store);
+    if (!blob) continue;
+    try {
+      await uploadFamilyMedia(id, blob);
+      seen.add(id);
+    } catch {
+      break; // offline or not set up yet: try again next time
+    }
+  }
+  try {
+    localStorage.setItem(SHARED, JSON.stringify([...seen]));
+  } catch {
+    /* private mode */
+  }
+}
+
