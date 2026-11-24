@@ -293,9 +293,17 @@ function Jobs({ member }: { member: Member }) {
       {chores.length === 0 ? (
         <EmptyState emoji="🌈" title="No jobs today" body="Ask a grown-up to add some in PointPals." />
       ) : (
-        <div className="grid min-h-0 flex-1 auto-rows-fr grid-cols-3 gap-4 overflow-y-auto pb-1 no-scrollbar max-md:grid-cols-2 max-md:gap-2.5 max-md:overflow-visible">
+        <div
+          className={cn(
+            "grid min-h-0 flex-1 overflow-y-auto pb-1 no-scrollbar [mask-image:linear-gradient(to_bottom,black_94%,transparent)]",
+            chores.length > 9
+              ? "gap-3 auto-rows-[minmax(9.5rem,auto)] grid-cols-[repeat(auto-fill,minmax(10rem,1fr))]"
+              : "gap-4 auto-rows-[minmax(12.5rem,auto)] grid-cols-[repeat(auto-fill,minmax(12.5rem,1fr))]",
+            "max-md:grid-cols-2 max-md:gap-2.5 max-md:overflow-visible",
+          )}
+        >
           {chores.map((c) => (
-            <JobCard key={c.id} chore={c} member={member} onDone={() => claim(c)} />
+            <JobCard key={c.id} chore={c} member={member} onDone={() => claim(c)} dense={chores.length > 9} />
           ))}
         </div>
       )}
@@ -303,7 +311,7 @@ function Jobs({ member }: { member: Member }) {
   );
 }
 
-function JobCard({ chore, member, onDone }: { chore: ChoreView; member: Member; onDone: () => void }) {
+function JobCard({ chore, member, onDone, dense }: { chore: ChoreView; member: Member; onDone: () => void; dense?: boolean }) {
   const giving = useParentUnlocked();
   const phone = useIsPhone();
   const p = pal(member.palId);
@@ -311,22 +319,22 @@ function JobCard({ chore, member, onDone }: { chore: ChoreView; member: Member; 
     <motion.div
       layout
       className={cn(
-        "relative flex min-h-[12.5rem] flex-col items-center justify-between gap-2 rounded-[1.8rem] p-4 text-center ring-1 ring-black/5 max-md:min-h-0 max-md:rounded-[1.5rem] max-md:p-3",
+        dense ? "relative flex min-h-[9.5rem] flex-col items-center justify-between gap-1 rounded-[1.5rem] p-3 text-center ring-1 ring-black/5 max-md:min-h-0 max-md:rounded-[1.5rem] max-md:p-3" : "relative flex min-h-[12.5rem] flex-col items-center justify-between gap-2 rounded-[1.8rem] p-4 text-center ring-1 ring-black/5 max-md:min-h-0 max-md:rounded-[1.5rem] max-md:p-3",
         chore.state === "done" && "bg-sage-tint",
         chore.state === "pending" && "bg-lilac-tint",
       )}
       style={chore.state === "todo" ? { background: p.tint } : undefined}
     >
       <span className="absolute right-3 top-3 rounded-full bg-white px-2.5 py-0.5 text-[1.1rem] font-black shadow-sm">+{chore.points}</span>
-      <ChoreIcon icon={chore.icon} size={phone ? 4.4 : 5.4} />
-      <p className="text-[1.35rem] font-extrabold leading-tight max-md:text-[1.3rem]">{chore.name}</p>
+      <ChoreIcon icon={chore.icon} size={phone ? 4.4 : dense ? 3.6 : 5.4} />
+      <p className={dense ? "text-[1.15rem] font-extrabold leading-tight max-md:text-[1.3rem]" : "text-[1.35rem] font-extrabold leading-tight max-md:text-[1.3rem]"}>{chore.name}</p>
       <AnimatePresence mode="wait" initial={false}>
         {chore.state === "todo" && (
           <motion.button
             key="todo"
             type="button"
             onClick={onDone}
-            className="tap flex min-h-[3.8rem] w-full items-center justify-center gap-2 whitespace-nowrap rounded-[1.2rem] bg-sage px-2 text-[1.35rem] font-black text-white shadow-[0_8px_20px_-10px_rgb(111_183_132/0.9)] max-md:gap-1 max-md:text-[1.2rem]"
+            className={cn("tap flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-[1.2rem] bg-sage px-2 font-black text-white shadow-[0_8px_20px_-10px_rgb(111_183_132/0.9)] max-md:gap-1 max-md:text-[1.2rem]", dense ? "min-h-[3rem] text-[1.15rem]" : "min-h-[3.8rem] text-[1.35rem]")}
             exit={{ rotateX: 90, opacity: 0 }}
           >
             <Sparkles className="size-6 shrink-0 max-md:size-5" /> {giving ? `Give +${chore.points}` : "I did it!"}

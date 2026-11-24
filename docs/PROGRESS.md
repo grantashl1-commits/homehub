@@ -1,5 +1,16 @@
 # Progress
 
+## 24 Nov 2026: jobs fit on bigger screens
+
+- With a real PointPals load (14 jobs) the kid's page squashed every row into
+  the available height, which clipped the "I did it!" buttons and spilled card
+  titles — worst on a laptop or the wall monitor at 100%.
+- The grid now fills as many columns as fit (10–12.5rem) and its rows keep
+  their height, scrolling behind a soft fade when there are more jobs than fit.
+  Over nine jobs the cards go compact (icon, name and button all smaller) so a
+  normal load fits without scrolling.
+- Checked at 1896×914, 1366×768 and 1180×820 with 14 jobs: picture, name and
+  button visible on every card.
 ## 24 Nov 2026: events land in the right person's column
 
 - The People view matched an owner only by a family name inside the title, so
