@@ -211,6 +211,25 @@ function Jobs({ member }: { member: Member }) {
 
   const parent = useParentUnlocked();
   const claim = async (c: ChoreView) => {
+    // A 0-point chore is recognition only (PointPals calls it a habit): no
+    // marble, so no grown-up approval needed. It's logged as done straight away.
+    if (c.points === 0) {
+      try {
+        if (source === "pointpals" && member.pointpalsKidId) {
+          await pointpalsAward(member.pointpalsKidId, { name: c.name, icon: c.icon, points: 0 });
+        } else {
+          addClaim({ memberId: member.id, choreId: c.id, choreName: c.name, choreIcon: c.icon, points: 0, source });
+          const made = useHub.getState().claims.at(-1);
+          if (made) useHub.getState().resolveClaim(made.id, "approved");
+        }
+        sfx.success();
+        const teReo = useHub.getState().settings.teReo;
+        celebrate({ title: teReo ? `${praise()} You did it!` : "You did it! 🌟", subtitle: c.name, palId: member.palId, photo: member.photo });
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "PointPals didn't accept that");
+      }
+      return;
+    }
     // A grown-up with the parent area unlocked gives the points straight away,
     // in PointPals itself when it's connected. Otherwise it waits for approval.
     if (parent) {
@@ -283,7 +302,7 @@ function JobCard({ chore, member, onDone, dense }: { chore: ChoreView; member: M
       )}
       style={chore.state === "todo" ? { background: p.tint } : undefined}
     >
-      <span className="absolute right-3 top-3 rounded-full bg-white px-2.5 py-0.5 text-[1.1rem] font-black shadow-sm">+{chore.points}</span>
+      {chore.points > 0 && <span className="absolute right-3 top-3 rounded-full bg-white px-2.5 py-0.5 text-[1.1rem] font-black shadow-sm">+{chore.points}</span>}
       <ChoreIcon icon={chore.icon} size={phone ? 4.4 : dense ? 3.6 : 5.4} />
       <p className={dense ? "text-[1.15rem] font-extrabold leading-tight max-md:text-[1.3rem]" : "text-[1.35rem] font-extrabold leading-tight max-md:text-[1.3rem]"}>{chore.name}</p>
       <AnimatePresence mode="wait" initial={false}>
@@ -295,7 +314,7 @@ function JobCard({ chore, member, onDone, dense }: { chore: ChoreView; member: M
             className={cn("tap flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-[1.2rem] bg-sage px-2 font-black text-white shadow-[0_8px_20px_-10px_rgb(111_183_132/0.9)] max-md:gap-1 max-md:text-[1.2rem]", dense ? "min-h-[3rem] text-[1.15rem]" : "min-h-[3.8rem] text-[1.35rem]")}
             exit={{ rotateX: 90, opacity: 0 }}
           >
-            <Sparkles className="size-6 shrink-0 max-md:size-5" /> {giving ? `Give +${chore.points}` : "I did it!"}
+            <Sparkles className="size-6 shrink-0 max-md:size-5" /> {giving && chore.points > 0 ? `Give +${chore.points}` : "I did it!"}
           </motion.button>
         )}
         {chore.state === "pending" && (
