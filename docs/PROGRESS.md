@@ -128,3 +128,23 @@ Verified at 1180×820 (iPad), 1366×768 (Chromebook) and 1920×1080 (wall).
 - Photos are cached for offline, and any that fail fall back to a plain panel.
 - Content: `src/content/guides.ts`; screen: `src/components/HouseGuide.tsx`;
   tests: `src/content/guides.test.ts`.
+
+## 24 Nov 2026: home screen tidy-up, and phones
+
+- Hero card: room under "Who's here?", names on a pill so they read on every
+  sky, and two clear badges on each face: ✉️ new notes for them, ⭐ PointPals
+  jobs still to do.
+- The UV and "sleeps till" chips are gone. In their place: Today, then a
+  **To do** bullet list (bin night plus calendar tasks: anything titled
+  "To do: …", "Task: …" or "☐ …", or an all-day entry on the family or kids'
+  calendar), tickable and synced, then **Coming up** for the next few days, so
+  the card is full even on a quiet day.
+- Jar card: the family jar plus each child's own jar (their PointPals personal
+  jar when split jars are on, otherwise their marbles).
+- Shopping card: no "Synced with SIGNAL" line; shows more items.
+- Fridge notes: "3 notes · 2 new" so it matches the Notes tab (which counts new
+  ones), every note on phones, two on the bench, and "View all".
+- The + Shopping / + Calendar / + Note buttons are gone; the cards open those pages.
+- Phones: one scrolling column, compact header and a full-width nav that fits
+  six tabs; safe-area insets for notches; the installed app is no longer
+  locked to landscape. Other pages still need their own phone pass.

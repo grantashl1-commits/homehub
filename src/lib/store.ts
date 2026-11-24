@@ -76,6 +76,8 @@ export interface HubState {
   mealHearts: Record<string, string[]>;
   localDinners: Record<string, string>;
   photos: Photo[];
+  /** Calendar tasks ticked off: event id → the day it was ticked. */
+  doneTasks: Record<string, string>;
 
   updateSettings: (patch: Partial<Settings>) => void;
   setMembers: (members: Member[]) => void;
@@ -115,6 +117,7 @@ export interface HubState {
   setLocalDinner: (date: string, recipeId: string) => void;
 
   addPhoto: (p: Omit<Photo, "id" | "addedAt">) => void;
+  toggleTask: (eventId: string) => void;
   removePhoto: (id: string) => void;
 
   resetAll: () => void;
@@ -136,6 +139,7 @@ const initialData = () => ({
   mealHearts: {} as Record<string, string[]>,
   localDinners: {} as Record<string, string>,
   photos: [] as Photo[],
+  doneTasks: {} as Record<string, string>,
 });
 
 export const useHub = create<HubState>()(
@@ -261,6 +265,17 @@ export const useHub = create<HubState>()(
       addPhoto: (p) =>
         set((s) => ({ photos: [...s.photos, { ...p, id: uid("photo"), addedAt: Date.now() }] })),
       removePhoto: (id) => set((s) => ({ photos: s.photos.filter((p) => p.id !== id) })),
+
+      toggleTask: (eventId) =>
+        set((s) => {
+          const next = { ...s.doneTasks };
+          if (next[eventId]) delete next[eventId];
+          else next[eventId] = dateKey();
+          // Forget ticks older than a fortnight so this never grows forever.
+          const cutoff = dateKey(new Date(Date.now() - 14 * 86400_000));
+          for (const [k, d] of Object.entries(next)) if (d < cutoff) delete next[k];
+          return { doneTasks: next };
+        }),
 
       resetAll: () => set(initialData()),
     }),

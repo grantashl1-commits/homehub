@@ -1,17 +1,18 @@
 import { useShallow } from "zustand/react/shallow";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
-import { ArrowRight, CalendarPlus, ListPlus, StickyNote } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import { useHub, unreadNotesFor, activeHabit } from "@/lib/store";
-import { useChoresFor, useFamilyJar, useNow, useShoppingList, useTonightsDinner } from "@/lib/hooks";
+import { useChoresFor, useFamilyJar, useMarbles, useNow, useShoppingList, useTonightsDinner } from "@/lib/hooks";
 import { dateKey, dayPart, formatTime, greeting } from "@/lib/time";
-import { binReminder, countdowns, reoDay, reoGreeting, sleepsLabel, wearTips } from "@/lib/nz";
-import { eventMembers, eventStart, onDay, useCalendar } from "@/lib/integrations/calendar";
+import { binReminder, countdowns, reoDay, reoGreeting, sleepsLabel } from "@/lib/nz";
+import { eventMembers, eventStart, isTask, onDay, taskTitle, useCalendar } from "@/lib/integrations/calendar";
+import { usePointPals } from "@/lib/integrations/pointpals";
 import { recipeImage } from "@/lib/integrations/signal";
 import { describeWeather, useWeather } from "@/lib/integrations/weather";
 import { groceryEmoji, noteColor } from "@/lib/catalog";
 import { pal } from "@/lib/pals";
-import type { Member } from "@/lib/types";
+import type { CalendarEvent, Member } from "@/lib/types";
 import { Avatar } from "@/components/Avatar";
 import { JarProgress, MarbleJar } from "@/components/MarbleJar";
 import { ReadAloud } from "@/components/ui";
@@ -27,13 +28,14 @@ const SKIES = {
 
 export default function Home() {
   return (
-    <div className="grid h-full grid-cols-3 grid-rows-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-[1.3rem]">
+    // Bench and wall: hero down the left, four cards in a 2×2. Phones: one
+    // column that scrolls, each card at a comfortable height.
+    <div className="flex flex-col gap-[1.3rem] pb-4 md:grid md:h-full md:grid-cols-3 md:grid-rows-2 md:pb-0">
       <Hero />
       <DinnerTile />
       <JarTile />
       <ListTile />
       <NotesTile />
-      <QuickAdd />
     </div>
   );
 }
@@ -46,23 +48,25 @@ function Hero() {
   const settings = useHub((s) => s.settings);
   const { events } = useCalendar();
   const weather = useWeather();
-  const today = events.filter((e) => onDay(e, now) && (e.allDay || eventStart(e) > new Date(now.getTime() - 60 * 60000)));
+  const todayAll = events.filter((e) => onDay(e, now));
+  const tasks = todayAll.filter(isTask);
+  const today = todayAll.filter((e) => !isTask(e) && (e.allDay || eventStart(e) > new Date(now.getTime() - 60 * 60000)));
+  const comingUp = upcoming(events, now).filter((e) => !isTask(e));
   const w = weather.data ? describeWeather(weather.data.code, weather.data.isDay) : null;
   const hour = now.getHours();
   const reflectionTime = hour >= 17 && hour < 21;
-  const tips = wearTips(weather.data);
   const bins = binReminder(settings.binDay, settings.recycling, now);
   const next = countdowns(members, now, settings.nzDates).find((c) => c.sleeps > 0);
   const english = greeting(now);
   const summary = `${settings.teReo ? `${reoGreeting(now)}! ` : ""}${english}! ${
     w && weather.data ? `It's ${weather.data.temp} degrees and ${w.label.toLowerCase()} in Taupō. ` : ""
   }${today.length ? `Today we have ${today.length} thing${today.length > 1 ? "s" : ""} on.` : "Nothing on the calendar today."}${
-    next ? ` ${sleepsLabel(next.sleeps)} until ${next.label}!` : ""
-  }`;
+    tasks.length ? ` And ${tasks.length} thing${tasks.length > 1 ? "s" : ""} to do: ${tasks.map(taskTitle).join(", ")}.` : ""
+  }${next ? ` ${sleepsLabel(next.sleeps)} until ${next.label}!` : ""}`;
 
   return (
     <section
-      className="relative row-span-3 flex min-h-0 flex-col overflow-hidden rounded-[2.2rem] p-[1.6rem] shadow-[var(--shadow-lift)]"
+      className="relative flex flex-col overflow-hidden rounded-[2.2rem] p-[1.6rem] shadow-[var(--shadow-lift)] md:row-span-2 md:min-h-0"
       style={{ background: sky.bg, color: sky.ink }}
     >
       <Sun part={part} />
@@ -78,69 +82,134 @@ function Hero() {
         <ReadAloud text={summary} />
       </div>
 
-      {(tips.length > 0 || bins || next) && (
-        <div className="relative mt-2.5 flex max-h-[4.6rem] flex-wrap gap-1.5 overflow-hidden">
-          {bins && (
-            <span className="rounded-full bg-white/80 px-3 py-1 text-[1.1rem] font-black text-ink">
-              🗑️ Bins out {bins.when}{bins.recycling ? " + recycling ♻️" : ""}
-            </span>
-          )}
-          {tips.slice(0, 2).map((t) => (
-            <span key={t.text} className="rounded-full bg-white/80 px-3 py-1 text-[1.1rem] font-black text-ink">
-              {t.emoji} {t.text}
-            </span>
-          ))}
-          {next && (
-            <span className="rounded-full bg-white/80 px-3 py-1 text-[1.1rem] font-black text-ink">
-              {next.emoji} {sleepsLabel(next.sleeps)} till {next.label}
-            </span>
-          )}
-        </div>
-      )}
-
-      <div className="relative mt-3">
-        <p className="mb-1 text-[1.05rem] font-black uppercase tracking-[0.1em] opacity-60">Who's here?</p>
-        <div className="flex gap-3.5">
-          {members.slice(0, 5).map((m) => (
+      <div className="relative mt-4">
+        <p className="mb-2.5 text-[1.05rem] font-black uppercase tracking-[0.1em] opacity-60">Who's here?</p>
+        <div className="flex flex-wrap gap-x-3.5 gap-y-2 pt-1">
+          {members.slice(0, 6).map((m) => (
             <WhoButton key={m.id} member={m} />
           ))}
         </div>
       </div>
 
-      <div className="relative mt-3 flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="mb-1.5 flex items-center justify-between">
-          <p className="text-[1.05rem] font-black uppercase tracking-[0.1em] opacity-60">Today</p>
-          <Link to="/calendar" className="text-[1.1rem] font-extrabold underline-offset-4 opacity-70 hover:underline">
-            See the week
-          </Link>
+      <div className="no-scrollbar relative mt-4 flex flex-col gap-4 pb-2 md:min-h-0 md:flex-1 md:overflow-y-auto md:[mask-image:linear-gradient(to_bottom,black_88%,transparent)]">
+        <div>
+          <div className="mb-1.5 flex items-center justify-between">
+            <p className="text-[1.05rem] font-black uppercase tracking-[0.1em] opacity-60">Today</p>
+            <Link to="/calendar" className="text-[1.1rem] font-extrabold underline-offset-4 opacity-70 hover:underline">
+              See the week
+            </Link>
+          </div>
+          <ul className="flex flex-col gap-1.5">
+            {today.map((e) => (
+              <EventRow key={e.id} e={e} members={members} />
+            ))}
+            {today.length === 0 && (
+              <li className="rounded-[1.1rem] bg-white/55 px-4 py-2.5 text-[1.25rem] font-bold text-ink-2">A free day. Lovely! ☀️</li>
+            )}
+          </ul>
         </div>
-        <ul className="flex min-h-0 flex-col gap-1.5 overflow-hidden [mask-image:linear-gradient(to_bottom,black_78%,transparent)]">
-          {today.map((e) => {
-            const who = eventMembers(e, members);
-            const m = members.find((x) => x.id === who[0]);
-            const colour = e.calendar === "bookings" ? "#8a8597" : e.calendar === "nz" ? "#2f6b42" : m ? pal(m.palId).shade : "#ee7b5b";
-            return (
-              <li key={e.id} className="flex shrink-0 items-center gap-2.5 rounded-[1.1rem] bg-white/70 px-3 py-2 text-ink backdrop-blur">
-                <span className="h-[2.2rem] w-[0.4rem] shrink-0 rounded-full" style={{ background: colour }} />
-                <span className="w-[4.9rem] shrink-0 text-[1.1rem] font-black text-ink-2">
-                  {e.allDay ? "All day" : formatTime(eventStart(e))}
-                </span>
-                <span className="min-w-0 flex-1 truncate text-[1.25rem] font-extrabold">
-                  {e.emoji ? `${e.emoji} ` : e.calendar === "bookings" ? "🧹 " : ""}
-                  {e.title}
-                </span>
-                {m && <Avatar member={m} size={2} />}
-              </li>
-            );
-          })}
-          {today.length === 0 && (
-            <li className="rounded-[1.1rem] bg-white/55 px-4 py-2.5 text-[1.25rem] font-bold text-ink-2">A free day. Lovely! ☀️</li>
-          )}
-        </ul>
+
+        <TaskList tasks={tasks} bins={bins} />
+
+        {comingUp.length > 0 && (
+          <div>
+            <p className="mb-1.5 text-[1.05rem] font-black uppercase tracking-[0.1em] opacity-60">Coming up</p>
+            <ul className="flex flex-col gap-1.5">
+              {comingUp.map((e) => (
+                <EventRow key={e.id} e={e} members={members} day />
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {next && (
+          <p className="text-[1.15rem] font-extrabold opacity-75">
+            {next.emoji} {sleepsLabel(next.sleeps)} till {next.label}
+          </p>
+        )}
       </div>
 
       <ReflectionCard highlight={reflectionTime} />
     </section>
+  );
+}
+
+/** The next few things after today, to fill the card on a quiet day. */
+function upcoming(events: CalendarEvent[], now: Date): CalendarEvent[] {
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() + 1);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 4);
+  return events
+    .filter((e) => e.calendar !== "bookings" && eventStart(e) >= start && eventStart(e) < end)
+    .sort((a, b) => eventStart(a).getTime() - eventStart(b).getTime())
+    .slice(0, 6);
+}
+
+function EventRow({ e, members, day }: { e: CalendarEvent; members: Member[]; day?: boolean }) {
+  const who = eventMembers(e, members);
+  const m = members.find((x) => x.id === who[0]);
+  const colour = e.calendar === "bookings" ? "#8a8597" : e.calendar === "nz" ? "#2f6b42" : m ? pal(m.palId).shade : "#ee7b5b";
+  const start = eventStart(e);
+  const when = day
+    ? `${start.toLocaleDateString("en-NZ", { weekday: "short" })}${e.allDay ? "" : ` ${formatTime(start)}`}`
+    : e.allDay
+      ? "All day"
+      : formatTime(start);
+  return (
+    <li className="flex items-center gap-2.5 rounded-[1.1rem] bg-white/70 px-3 py-2 text-ink backdrop-blur">
+      <span className="h-[2.2rem] w-[0.4rem] shrink-0 rounded-full" style={{ background: colour }} />
+      <span className={cn("shrink-0 text-[1.1rem] font-black text-ink-2", day ? "w-[7.4rem]" : "w-[4.9rem]")}>{when}</span>
+      <span className="min-w-0 flex-1 truncate text-[1.25rem] font-extrabold">
+        {e.emoji ? `${e.emoji} ` : e.calendar === "bookings" ? "🧹 " : ""}
+        {e.title}
+      </span>
+      {m && <Avatar member={m} size={2} />}
+    </li>
+  );
+}
+
+/** Today's to-dos from the calendar (plus bin night), ticked off on the screen. */
+function TaskList({ tasks, bins }: { tasks: CalendarEvent[]; bins: ReturnType<typeof binReminder> }) {
+  const done = useHub((s) => s.doneTasks);
+  const toggle = useHub((s) => s.toggleTask);
+  const items = [
+    ...(bins ? [{ id: `bins-${dateKey()}`, label: `🗑️ Bins out ${bins.when}${bins.recycling ? " + recycling ♻️" : ""}` }] : []),
+    ...tasks.map((t) => ({ id: t.id, label: `${t.emoji ? `${t.emoji} ` : ""}${taskTitle(t)}` })),
+  ];
+  if (!items.length) return null;
+  const left = items.filter((i) => !done[i.id]).length;
+  return (
+    <div>
+      <p className="mb-1.5 text-[1.05rem] font-black uppercase tracking-[0.1em] opacity-60">
+        To do {left ? `· ${left} left` : "· all done! 🎉"}
+      </p>
+      <ul className="flex flex-col">
+        {items.map((i) => {
+          const on = !!done[i.id];
+          return (
+            <li key={i.id}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!on) sfx.success();
+                  else sfx.tap();
+                  toggle(i.id);
+                }}
+                aria-pressed={on}
+                className="tap flex min-h-[2.9rem] w-full items-center gap-2.5 text-left"
+              >
+                <span className={cn("grid size-[1.9rem] shrink-0 place-items-center rounded-full border-2", on ? "border-sage bg-sage text-white" : "border-current bg-white/70 opacity-70")}>
+                  {on && <Check className="size-3.5" strokeWidth={3.5} />}
+                </span>
+                <span className={cn("min-w-0 flex-1 truncate text-[1.25rem] font-extrabold", on && "line-through opacity-50")}>{i.label}</span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
 
@@ -150,8 +219,6 @@ function WhoButton({ member }: { member: Member }) {
   const { chores } = useChoresFor(member.role === "child" ? member : undefined);
   const unread = unreadNotesFor(notes, member.id).length;
   const todo = chores.filter((c) => c.state === "todo").length;
-  // One small badge on the ring: new notes win (coral), otherwise jobs waiting (ink).
-  const badge = unread || todo || undefined;
   const waiting = [unread && `${unread} new note${unread > 1 ? "s" : ""}`, todo && `${todo} job${todo > 1 ? "s" : ""} to do`]
     .filter(Boolean)
     .join(", ");
@@ -162,11 +229,21 @@ function WhoButton({ member }: { member: Member }) {
         sfx.pop();
         navigate(`/me/${member.id}`);
       }}
-      className="tap rounded-full"
+      className="tap relative rounded-full"
       aria-label={`${member.name}'s zone${waiting ? ` — ${waiting}` : ""}`}
       title={waiting || `${member.name}'s zone`}
     >
-      <Avatar member={member} size={3.7} ring label badge={badge} tone={unread ? "coral" : "ink"} />
+      <Avatar member={member} size={3.7} ring />
+      <span className="mt-1 block max-w-[6.5rem] truncate rounded-full bg-white/80 px-2 text-center text-[1.1rem] font-extrabold text-ink">{member.name}</span>
+      {/* ✉️ new notes for them, ⭐ PointPals jobs still to do. */}
+      <span className="absolute -right-2.5 -top-2 flex flex-col items-end gap-0.5">
+        {unread > 0 && (
+          <span className="flex h-[1.8rem] items-center gap-0.5 rounded-full bg-coral px-1.5 text-[0.95rem] font-black text-white ring-2 ring-white">✉️{unread}</span>
+        )}
+        {todo > 0 && (
+          <span className="flex h-[1.8rem] items-center gap-0.5 rounded-full bg-ink px-1.5 text-[0.95rem] font-black text-white ring-2 ring-white">⭐{todo}</span>
+        )}
+      </span>
     </button>
   );
 }
@@ -195,7 +272,7 @@ function ReflectionCard({ highlight }: { highlight: boolean }) {
         🍽️
       </motion.span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate font-display text-[1.7rem] font-black leading-none">
+        <span className="block truncate font-display text-[1.55rem] font-black leading-none">
           {highlight ? "Reflection time!" : "Dinner reflection"}
         </span>
         <span className="block truncate text-[1.1rem] font-bold text-ink-2">
@@ -231,7 +308,7 @@ function DinnerTile() {
     <Link
       to="/meals"
       onClick={() => sfx.tap()}
-      className="tap group relative overflow-hidden rounded-[2rem] bg-peach-tint shadow-[var(--shadow-soft)]"
+      className="tap group relative min-h-[18rem] overflow-hidden rounded-[2rem] bg-peach-tint shadow-[var(--shadow-soft)] md:min-h-0"
     >
       {img ? (
         <img src={img} alt="" className="absolute inset-0 size-full object-cover transition-transform duration-700 group-hover:scale-105" onError={(e) => (e.currentTarget.style.display = "none")} />
@@ -256,28 +333,58 @@ function DinnerTile() {
 function JarTile() {
   const jar = useFamilyJar();
   const pending = useHub((s) => s.claims.filter((c) => c.status === "pending").length);
+  const kids = useHub(useShallow((s) => s.members.filter((m) => m.role === "child")));
   return (
-    <Link to="/me" onClick={() => sfx.tap()} className="tap card flex items-center gap-3 overflow-hidden bg-sun-tint p-4">
-      <MarbleJar count={jar.count} target={jar.target} size={11.5} pending={pending} />
-      <div className="min-w-0 flex-1">
-        <p className="text-[1.15rem] font-black uppercase tracking-[0.08em] text-[#8a6a10]">Family jar</p>
-        <p className="font-display text-[3.4rem] font-black leading-none">
-          {jar.count}
-          <span className="text-[1.9rem] text-ink-3">/{jar.target}</span>
-        </p>
-        <p className="mb-2.5 truncate text-[1.25rem] font-extrabold text-ink-2">to {jar.reward} 🍿</p>
-        <JarProgress count={jar.count} target={jar.target} />
-        {pending > 0 && <p className="mt-2 text-[1.1rem] font-extrabold text-coral-ink">{pending} waiting for a grown-up</p>}
+    <Link to="/me" onClick={() => sfx.tap()} className="tap card flex min-h-[20rem] flex-col gap-3 overflow-hidden bg-sun-tint p-4 md:min-h-0">
+      <div className="flex items-center gap-3">
+        <MarbleJar count={jar.count} target={jar.target} size={6.5} pending={pending} />
+        <div className="min-w-0 flex-1">
+          <p className="text-[1.05rem] font-black uppercase tracking-[0.08em] text-[#8a6a10]">Family jar</p>
+          <p className="font-display text-[2.6rem] font-black leading-none">
+            {jar.count}
+            <span className="text-[1.5rem] text-ink-3">/{jar.target}</span>
+          </p>
+          <p className="mb-1.5 truncate text-[1.15rem] font-extrabold text-ink-2">to {jar.reward} 🍿</p>
+          <JarProgress count={jar.count} target={jar.target} />
+          {pending > 0 && <p className="mt-1 text-[1.05rem] font-extrabold text-coral-ink">{pending} waiting for a grown-up</p>}
+        </div>
       </div>
+      {kids.length > 0 && (
+        <div className="grid min-h-0 flex-1 gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(kids.length, 4)}, minmax(0, 1fr))` }}>
+          {kids.slice(0, 4).map((k) => (
+            <KidJar key={k.id} member={k} />
+          ))}
+        </div>
+      )}
     </Link>
   );
 }
 
+/** A child's own jar: their PointPals personal jar when split jars are on, otherwise their marbles. */
+function KidJar({ member }: { member: Member }) {
+  const marbles = useMarbles(member);
+  const kid = usePointPals((s) => (s.userId && member.pointpalsKidId ? s.kids.find((k) => k.id === member.pointpalsKidId) : undefined));
+  const split = usePointPals((s) => !!s.household?.splitJarsEnabled);
+  const personal = kid && split && kid.personalTarget > 0;
+  const count = personal ? kid.personalPool : marbles;
+  const target = personal ? kid.personalTarget : undefined;
+  return (
+    <div className="flex min-w-0 flex-col items-center justify-end rounded-[1.2rem] bg-white/60 px-1 py-2 text-center">
+      <MarbleJar count={count} target={target ?? Math.max(count, 10)} size={4.6} />
+      <p className="mt-1 w-full truncate text-[1.1rem] font-black">{member.name}</p>
+      <p className="w-full truncate text-[1rem] font-extrabold text-ink-2">
+        {target ? `${count}/${target}` : `${count} marble${count === 1 ? "" : "s"}`}
+      </p>
+      {personal && kid.personalReward && <p className="w-full truncate text-[0.9rem] font-bold text-ink-3">{kid.personalReward}</p>}
+    </div>
+  );
+}
+
 function ListTile() {
-  const { items, source } = useShoppingList();
+  const { items } = useShoppingList();
   const todo = items.filter((i) => !i.checked);
   return (
-    <Link to="/list" onClick={() => sfx.tap()} className="tap card flex min-h-0 flex-col overflow-hidden bg-sage-tint p-5">
+    <Link to="/list" onClick={() => sfx.tap()} className="tap card flex min-h-[14rem] flex-col overflow-hidden bg-sage-tint p-5 md:min-h-0">
       <div className="flex items-start justify-between">
         <p className="text-[1.15rem] font-black uppercase tracking-[0.08em] text-sage-ink">Shopping list</p>
         <span className="text-[2.2rem] leading-none">🛒</span>
@@ -285,14 +392,13 @@ function ListTile() {
       <p className="font-display text-[3rem] font-black leading-none">
         {todo.length} <span className="text-[1.6rem] text-ink-2">to buy</span>
       </p>
-      <div className="mt-3 flex flex-wrap gap-2 overflow-hidden" style={{ maxHeight: "5.6rem" }}>
-        {todo.slice(0, 6).map((i) => (
+      <div className="mt-3 flex min-h-0 flex-1 flex-wrap content-start gap-2 overflow-hidden">
+        {todo.slice(0, 18).map((i) => (
           <span key={i.id} className="rounded-full bg-white px-3 py-1 text-[1.15rem] font-extrabold">
             {groceryEmoji(i.name)} {i.name}
           </span>
         ))}
       </div>
-      <p className="mt-auto pt-2 text-[1rem] font-bold text-sage-ink/80">{source === "signal" ? "● Synced with SIGNAL" : "Saved on this screen"}</p>
     </Link>
   );
 }
@@ -300,60 +406,43 @@ function ListTile() {
 function NotesTile() {
   const notes = useHub(useShallow((s) => s.notes.filter((n) => !n.doneAt)));
   const members = useHub((s) => s.members);
+  const unread = useHub((s) => new Set(s.members.flatMap((m) => unreadNotesFor(s.notes, m.id).map((n) => n.id))).size);
+  const shown = notes.slice(0, 4);
   return (
-    <Link to="/notes" onClick={() => sfx.tap()} className="tap fridge relative overflow-hidden rounded-[2rem] p-5 shadow-[var(--shadow-soft)] ring-1 ring-black/5">
-      <div className="flex items-start justify-between">
+    <Link to="/notes" onClick={() => sfx.tap()} className="tap fridge relative flex min-h-[18rem] flex-col overflow-hidden rounded-[2rem] p-5 shadow-[var(--shadow-soft)] ring-1 ring-black/5 md:min-h-0">
+      <div className="flex items-center justify-between gap-2">
         <p className="text-[1.15rem] font-black uppercase tracking-[0.08em] text-lilac-ink">Fridge notes</p>
-        <span className="rounded-full bg-lilac px-3 py-0.5 text-[1.1rem] font-black text-white">{notes.length}</span>
+        <span className="rounded-full bg-lilac px-3 py-0.5 text-[1.1rem] font-black text-white">
+          {notes.length} note{notes.length === 1 ? "" : "s"}
+          {unread > 0 ? ` · ${unread} new` : ""}
+        </span>
       </div>
-      <div className="relative mt-2 h-[calc(100%-2.2rem)]">
-        {notes.slice(0, 2).map((n, i) => {
+      <div className="mt-3 grid min-h-0 flex-1 grid-cols-2 content-start gap-3 overflow-hidden">
+        {shown.map((n, i) => {
           const c = noteColor(n.color);
           const from = members.find((m) => m.id === n.from);
           return (
             <motion.div
               key={n.id}
-              className="absolute w-[62%] rounded-[0.6rem] p-3 shadow-[0_8px_16px_-8px_rgb(0_0_0/0.3)]"
-              style={{ background: c.bg, color: c.ink, left: i ? "36%" : "2%", top: i ? "22%" : "4%", rotate: i ? 3 : -4 }}
+              className={cn("relative rounded-[0.6rem] p-3 pt-4 shadow-[0_8px_16px_-8px_rgb(0_0_0/0.3)]", i >= 2 && "md:hidden")}
+              style={{ background: c.bg, color: c.ink, rotate: [-3, 2.5, 2, -2][i % 4] }}
               whileHover={{ rotate: 0 }}
             >
               <span className="absolute -top-2 left-1/2 size-4 -translate-x-1/2 rounded-full bg-coral shadow ring-2 ring-white/70" />
-              <p className="line-clamp-3 text-[1.15rem] font-extrabold leading-tight">
+              <p className="line-clamp-3 text-[1.1rem] font-extrabold leading-tight">
                 {n.kind === "voice" ? "🎤 Voice note" : n.kind === "doodle" ? "🖍️ A drawing" : n.text}
               </p>
               {from && <p className="mt-1 text-[0.95rem] font-black opacity-70">– {from.name}</p>}
             </motion.div>
           );
         })}
-        {notes.length === 0 && <p className="pt-4 text-[1.35rem] font-bold text-ink-2">Leave the first note!</p>}
+        {notes.length === 0 && <p className="col-span-2 pt-4 text-[1.35rem] font-bold text-ink-2">Leave the first note!</p>}
       </div>
+      {notes.length > 0 && (
+        <p className="mt-2 text-right text-[1.1rem] font-black text-lilac-ink">
+          View all {notes.length} →
+        </p>
+      )}
     </Link>
-  );
-}
-
-function QuickAdd() {
-  const navigate = useNavigate();
-  const items = [
-    { label: "Shopping", icon: ListPlus, to: "/list?add=1", bg: "var(--sage)" },
-    { label: "Calendar", icon: CalendarPlus, to: "/calendar?add=1", bg: "var(--sky)" },
-    { label: "Note", icon: StickyNote, to: "/notes?add=1", bg: "var(--lilac)" },
-  ];
-  return (
-    <div className="col-span-2 grid grid-cols-3 gap-[1.3rem]">
-      {items.map((i) => (
-        <button
-          key={i.label}
-          type="button"
-          onClick={() => {
-            sfx.pop();
-            navigate(i.to);
-          }}
-          className="tap flex h-[5.2rem] items-center justify-center gap-3 rounded-[1.6rem] text-[1.55rem] font-black text-white shadow-[var(--shadow-soft)]"
-          style={{ background: i.bg }}
-        >
-          <i.icon className="size-8" strokeWidth={2.6} />+ {i.label}
-        </button>
-      ))}
-    </div>
   );
 }
