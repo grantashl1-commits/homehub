@@ -37,9 +37,9 @@ export default function Notes() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="mb-4 flex items-center justify-between gap-6">
+      <div className="mb-4 flex items-center justify-between gap-6 max-md:mb-3 max-md:flex-col max-md:items-stretch max-md:gap-2">
         <h1 className="font-display text-[3.4rem] font-black leading-none">Fridge notes</h1>
-        <div className="flex items-center gap-2 rounded-full bg-white/80 p-1.5 ring-1 ring-black/5">
+        <div className="flex items-center gap-2 rounded-full bg-white/80 p-1.5 ring-1 ring-black/5 max-md:self-start max-md:overflow-x-auto no-scrollbar max-md:max-w-full">
           <FilterPill active={filter === "all"} onClick={() => setFilter("all")}>
             Everyone
           </FilterPill>
@@ -60,13 +60,13 @@ export default function Notes() {
         </div>
       </div>
 
-      <div className="fridge relative min-h-0 flex-1 overflow-hidden rounded-[2.2rem] shadow-[inset_0_2px_10px_rgb(0_0_0/0.06)] ring-1 ring-black/5">
-        <div className="absolute right-6 top-1/2 h-[40%] w-[1.1rem] -translate-y-1/2 rounded-full bg-gradient-to-b from-white to-[#ddd6cb] shadow-[0_2px_6px_rgb(0_0_0/0.15)]" />
-        <div className="h-full overflow-y-auto p-7 pr-14 no-scrollbar">
+      <div className="fridge relative min-h-0 flex-1 overflow-hidden rounded-[2.2rem] shadow-[inset_0_2px_10px_rgb(0_0_0/0.06)] ring-1 ring-black/5 max-md:min-h-[60vh] max-md:overflow-visible">
+        <div className="absolute right-6 top-1/2 h-[40%] w-[1.1rem] -translate-y-1/2 rounded-full bg-gradient-to-b from-white to-[#ddd6cb] shadow-[0_2px_6px_rgb(0_0_0/0.15)] max-md:hidden" />
+        <div className="h-full overflow-y-auto p-7 pr-14 no-scrollbar max-md:p-4 max-md:pb-24">
           {visible.length === 0 ? (
             <EmptyState emoji="🧲" title="The fridge is empty!" body="Leave a note for someone you love." />
           ) : (
-            <div className="grid grid-cols-4 gap-6">
+            <div className="grid grid-cols-4 gap-6 max-md:grid-cols-2 max-md:gap-4">
               <AnimatePresence>
                 {visible.map((n) => (
                   <NoteCard key={n.id} note={n} members={members} onOpen={() => setOpen(n)} />
@@ -81,10 +81,11 @@ export default function Notes() {
             sfx.pop();
             setComposing(true);
           }}
-          className="tap absolute bottom-6 right-8 flex h-[5.6rem] items-center gap-3 rounded-full bg-coral px-8 text-[1.7rem] font-black text-white shadow-[var(--shadow-glow)]"
+          className="tap absolute bottom-6 right-8 flex h-[5.6rem] items-center gap-3 rounded-full bg-coral px-8 text-[1.7rem] font-black text-white shadow-[var(--shadow-glow)] max-md:fixed max-md:bottom-[calc(6.4rem+env(safe-area-inset-bottom))] max-md:right-4 max-md:z-20 max-md:h-[4.8rem] max-md:px-5 max-md:text-[1.35rem]"
           whileHover={{ scale: 1.04 }}
         >
-          <Plus className="size-9" strokeWidth={3} /> Leave a note
+          <Plus className="size-9 max-md:size-7" strokeWidth={3} /> <span className="max-md:hidden">Leave a note</span>
+          <span className="md:hidden">Note</span>
         </motion.button>
       </div>
 
@@ -138,7 +139,7 @@ function NoteCard({ note, members, onOpen }: { note: PostIt; members: Member[]; 
       {note.sticker && <span className="absolute right-3 top-2 text-[2.4rem] leading-none">{note.sticker}</span>}
       {unread && <span className="absolute left-3 top-2 rounded-full bg-coral px-2 text-[0.9rem] font-black leading-[1.5rem] text-white">NEW</span>}
       <div className="min-h-0 flex-1 overflow-hidden">
-        {note.kind === "text" && <p className={cn("line-clamp-5 font-display text-[1.9rem] font-black leading-[1.05]", note.sticker && "pr-6")}>{note.text}</p>}
+        {note.kind === "text" && <p className={cn("line-clamp-5 font-display text-[1.9rem] font-black leading-[1.05] max-md:text-[1.6rem]", note.sticker && "pr-6")}>{note.text}</p>}
         {note.kind === "voice" && (
           <div className="flex h-full flex-col justify-center gap-2">
             <p className="text-[1.25rem] font-black">🎤 Voice note</p>

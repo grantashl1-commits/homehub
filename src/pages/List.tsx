@@ -59,12 +59,12 @@ export default function ShoppingList() {
 
   return (
     <div className="grid h-full grid-cols-1 gap-[1.3rem] md:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
-      <section className="card flex min-h-0 flex-col p-6">
-        <div className="mb-4 flex items-center justify-between gap-4">
+      <section className="card flex min-h-0 flex-col p-6 max-md:p-4">
+        <div className="mb-4 flex items-center justify-between gap-4 max-md:mb-2">
           <h1 className="font-display text-[3.2rem] font-black leading-none">Shopping list</h1>
           <SourceBadge source={source === "signal" ? "signal" : "local"} />
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto pr-1 no-scrollbar">
+        <div className="min-h-0 flex-1 overflow-y-auto pr-1 no-scrollbar max-md:overflow-visible">
           {todo.length === 0 && done.length === 0 && <EmptyState emoji="🧺" title="Nothing to buy!" body="Tap a picture to add something." />}
           {todo.length === 0 && done.length > 0 && <EmptyState emoji="🎉" title="All in the trolley!" />}
           <AnimatePresence initial={false}>
@@ -190,7 +190,7 @@ function Row({ item, by, onToggle, onRemove }: { item: ListItem; by?: Member; on
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 40, height: 0 }}
-      className={cn("flex min-h-[5.2rem] items-center gap-4 rounded-[1.4rem] bg-paper px-4 ring-1 ring-black/5", item.checked && "bg-white opacity-70")}
+      className={cn("flex min-h-[5.2rem] items-center gap-4 rounded-[1.4rem] bg-paper px-4 ring-1 ring-black/5 max-md:gap-1 max-md:px-3", item.checked && "bg-white opacity-70")}
     >
       <button
         type="button"
@@ -199,7 +199,7 @@ function Row({ item, by, onToggle, onRemove }: { item: ListItem; by?: Member; on
           onToggle();
         }}
         aria-label={item.checked ? `Untick ${item.name}` : `Tick ${item.name}`}
-        className="tap flex min-w-0 flex-1 items-center gap-4 py-2 text-left"
+        className="tap flex min-w-0 flex-1 items-center gap-4 py-2 text-left max-md:gap-2.5"
       >
         <span className={cn("grid size-[3.4rem] shrink-0 place-items-center rounded-full border-[0.22rem] transition-colors", item.checked ? "border-sage bg-sage text-white" : "border-ink/25 bg-white")}>
           {item.checked && <Check className="size-6" strokeWidth={4} />}
@@ -210,7 +210,7 @@ function Row({ item, by, onToggle, onRemove }: { item: ListItem; by?: Member; on
           {item.recipe && <span className="block truncate text-[1.1rem] font-bold text-ink-3">for {item.recipe}</span>}
         </span>
       </button>
-      {by && <Avatar member={by} size={2.6} />}
+      {by && <span className="max-md:hidden"><Avatar member={by} size={2.6} /></span>}
       <button type="button" aria-label={`Remove ${item.name}`} onClick={onRemove} className="tap grid size-[3.4rem] place-items-center rounded-full text-ink-3 hover:bg-black/5">
         <X className="size-6" />
       </button>

@@ -42,14 +42,14 @@ export default function Calendar() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <div>
+      <div className="mb-4 flex items-center justify-between gap-4 max-md:mb-3 max-md:flex-col max-md:items-stretch max-md:gap-2">
+        <div className="max-md:flex max-md:items-center max-md:justify-between">
           <h1 className="font-display text-[3.4rem] font-black leading-none">Our calendar</h1>
           <div className="mt-1.5">
             <SourceBadge source={connected ? "google" : usingSamples ? "sample" : "local"} />
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 max-md:gap-2 [&>button]:max-md:px-4">
           <Segmented<View>
             value={view}
             onChange={setView}
@@ -58,10 +58,10 @@ export default function Calendar() {
               { value: "agenda", label: "Week" },
             ]}
           />
-          <BigButton tone="white" size="md" icon={<Camera className="size-7" />} onClick={() => setSnapping(true)}>
-            Snap
+          <BigButton tone="white" size="md" aria-label="Snap a notice" icon={<Camera className="size-7" />} onClick={() => setSnapping(true)}>
+            <span className="max-md:sr-only">Snap</span>
           </BigButton>
-          <BigButton tone="sky" size="md" icon={<Plus className="size-7" strokeWidth={3} />} onClick={() => setAdding({ open: true })}>
+          <BigButton tone="sky" size="md" aria-label="Add an event" icon={<Plus className="size-7" strokeWidth={3} />} onClick={() => setAdding({ open: true })}>
             Add
           </BigButton>
         </div>
@@ -69,7 +69,7 @@ export default function Calendar() {
 
       {view === "people" ? (
         <>
-          <div className="mb-4 grid grid-cols-7 gap-2 rounded-[1.8rem] bg-white p-2 shadow-[var(--shadow-soft)]">
+          <div className="mb-4 grid grid-cols-7 gap-2 rounded-[1.8rem] bg-white p-2 shadow-[var(--shadow-soft)] max-md:mb-3 max-md:gap-0.5 max-md:p-1">
             {week.map((d) => {
               const sel = dateKey(d) === dateKey(day);
               const isToday = dateKey(d) === dateKey();
@@ -86,8 +86,8 @@ export default function Calendar() {
                   className={cn("tap relative flex flex-col items-center rounded-[1.3rem] py-2", sel ? "bg-sky text-white" : "hover:bg-sky-tint")}
                 >
                   <span className={cn("text-[1.1rem] font-black uppercase", !sel && "text-ink-3")}>{formatDayShort(d)}</span>
-                  <span className="font-display text-[2.4rem] font-black leading-none">{d.getDate()}</span>
-                  {teReo && <span className={cn("text-[0.95rem] font-extrabold", sel ? "text-white/85" : "text-ink-3")}>{reoDay(d)}</span>}
+                  <span className="font-display text-[2.4rem] font-black leading-none max-md:text-[1.9rem]">{d.getDate()}</span>
+                  {teReo && <span className={cn("text-[0.95rem] font-extrabold max-md:hidden", sel ? "text-white/85" : "text-ink-3")}>{reoDay(d)}</span>}
                   <span className="mt-1 flex h-[0.7rem] gap-1">
                     {Array.from({ length: Math.min(count, 4) }).map((_, i) => (
                       <span key={i} className={cn("size-[0.6rem] rounded-full", sel ? "bg-white" : "bg-sky")} />
@@ -153,9 +153,13 @@ function PeopleColumns({
   if (bookings.length) cols.push({ key: "bookings", title: "Airbnb", events: bookings, tint: "#ECEAF1", ink: "#4b4760" });
 
   return (
-    <div className="grid min-h-0 flex-1 gap-3" style={{ gridTemplateColumns: `repeat(${cols.length}, minmax(0, 1fr))` }}>
+    // Phones: one person per screen-width column, swiped sideways and snapping into place.
+    <div
+      className="grid min-h-0 flex-1 gap-3 max-md:-mx-3 max-md:flex max-md:min-h-[60vh] max-md:snap-x max-md:snap-mandatory max-md:overflow-x-auto max-md:px-3 max-md:pb-2 no-scrollbar"
+      style={{ gridTemplateColumns: `repeat(${cols.length}, minmax(0, 1fr))` }}
+    >
       {cols.map((c) => (
-        <div key={c.key} className="flex min-h-0 flex-col rounded-[1.8rem] p-3" style={{ background: c.tint }}>
+        <div key={c.key} className="flex min-h-0 flex-col rounded-[1.8rem] p-3 max-md:w-[78vw] max-md:shrink-0 max-md:snap-start" style={{ background: c.tint }}>
           <div className="mb-3 flex items-center gap-2.5 px-1">
             {c.member ? (
               <Avatar member={c.member} size={3.4} />
