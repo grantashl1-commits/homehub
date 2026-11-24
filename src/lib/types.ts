@@ -207,4 +207,9 @@ export interface Recipe {
   serves: number | null;
   time: string | null;
   category: string | null;
+  /** Method steps, when we have them (the family's own SIGNAL recipes). */
+  method?: string[];
+  /** One of the family's own recipes from SIGNAL "My recipes" (id "user:<uuid>"). */
+  mine?: boolean;
+  sourceUrl?: string | null;
 }

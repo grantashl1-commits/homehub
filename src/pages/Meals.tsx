@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import { motion } from "motion/react";
-import { ChevronLeft, ChevronRight, Clock, Heart, Plus, Repeat, Search, Users } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, Heart, Link2, Plus, Repeat, Search, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useHub } from "@/lib/store";
-import { useRecipes, useShoppingList, useWeekMeals, type DayMeal } from "@/lib/hooks";
+import { addRecipeToList, useRecipes, useShoppingList, useWeekMeals, type DayMeal } from "@/lib/hooks";
 import { ingredientName, recipeImage, signalSetDinner, useSignal } from "@/lib/integrations/signal";
 import { addDays, dateKey, formatDateShort, formatDay, formatDayShort, startOfWeek } from "@/lib/time";
 import { sfx } from "@/lib/device";
@@ -12,6 +12,8 @@ import { Avatar } from "@/components/Avatar";
 import { BigButton, ReadAloud, Sheet, SourceBadge } from "@/components/ui";
 import { requireParent } from "@/components/PinPad";
 import { cn } from "@/lib/utils";
+import { ImportRecipeSheet } from "@/components/RecipeImport";
+import { RECIPE_KINDS as KINDS, searchRecipes, type RecipeKind } from "@/lib/recipe-search";
 
 const NONE: string[] = [];
 
@@ -269,20 +271,21 @@ function SwapSheet({ open, onOpenChange, date }: { open: boolean; onOpenChange: 
   const signalUser = useSignal((s) => s.userId);
   const setLocalDinner = useHub((s) => s.setLocalDinner);
   const [q, setQ] = useState("");
-  const results = useMemo(() => {
-    if (!recipes) return [];
-    const all = [...recipes.values()].filter((r) => r.category === "meal" && r.image);
-    const t = q.trim().toLowerCase();
-    return (t ? all.filter((r) => r.name.toLowerCase().includes(t)) : all).slice(0, 24);
-  }, [recipes, q]);
+  const [kind, setKind] = useState<RecipeKind>("all");
+  const [importing, setImporting] = useState(false);
+  const matches = useMemo(() => (recipes ? searchRecipes([...recipes.values()], q, kind) : []), [recipes, q, kind]);
+  const results = matches.slice(0, 48);
 
   const choose = async (r: Recipe) => {
     try {
       if (signalUser) await signalSetDinner(date, r.id);
       else setLocalDinner(date, r.id);
       sfx.success();
-      toast.success(`${r.name} it is!`);
       onOpenChange(false);
+      const added = await addRecipeToList(r).catch(() => 0);
+      toast.success(`${r.name} it is!`, {
+        description: added ? `Added ${added} ingredient${added === 1 ? "" : "s"} to the shopping list. Delete anything you already have.` : undefined,
+      });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Couldn't change the plan");
     }
@@ -290,23 +293,55 @@ function SwapSheet({ open, onOpenChange, date }: { open: boolean; onOpenChange: 
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange} title="Pick a dinner" wide>
-      <div className="relative mb-4">
-        <Search className="absolute left-5 top-1/2 size-7 -translate-y-1/2 text-ink-3" />
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search SIGNAL recipes… e.g. chicken, tacos, curry"
-          className="h-[4.6rem] w-full rounded-[1.4rem] border-2 border-line bg-white pl-16 pr-5 text-[1.5rem] font-bold outline-none focus:border-sky"
-        />
+      <div className="mb-3 flex gap-3">
+        <div className="relative min-w-0 flex-1">
+          <Search className="absolute left-5 top-1/2 size-7 -translate-y-1/2 text-ink-3" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search recipes or ingredients… e.g. pancakes, chicken, kūmara"
+            className="h-[4.6rem] w-full rounded-[1.4rem] border-2 border-line bg-white pl-16 pr-5 text-[1.5rem] font-bold outline-none focus:border-sky"
+          />
+        </div>
+        <BigButton size="md" tone="white" icon={<Link2 className="size-6" />} onClick={() => setImporting(true)}>
+          Import from a link
+        </BigButton>
       </div>
-      <div className="grid grid-cols-4 gap-3">
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        {KINDS.map((k) => (
+          <button
+            key={k.id}
+            type="button"
+            onClick={() => setKind(k.id)}
+            aria-pressed={kind === k.id}
+            className={cn("tap h-[3.4rem] rounded-full px-4 text-[1.15rem] font-black", kind === k.id ? "bg-ink text-white" : "bg-white text-ink-2 ring-1 ring-black/5")}
+          >
+            {k.label}
+          </button>
+        ))}
+        <span className="ml-auto text-[1.1rem] font-bold text-ink-3">
+          {matches.length} recipe{matches.length === 1 ? "" : "s"}
+          {matches.length > results.length ? ` · showing ${results.length}` : ""}
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
         {results.map((r) => (
-          <button key={r.id} type="button" onClick={() => void choose(r)} className="tap overflow-hidden rounded-[1.4rem] bg-white text-left ring-1 ring-black/5">
+          <button key={r.id} type="button" onClick={() => void choose(r)} className="tap relative overflow-hidden rounded-[1.4rem] bg-white text-left ring-1 ring-black/5">
             <Photo recipe={r} className="aspect-[4/3] w-full" />
+            {r.mine && <span className="absolute left-2 top-2 rounded-full bg-white/90 px-2.5 py-0.5 text-[0.95rem] font-black">⭐ Ours</span>}
             <p className="line-clamp-2 px-3 py-2 text-[1.15rem] font-extrabold leading-tight">{r.name}</p>
           </button>
         ))}
+        {recipes && !results.length && <p className="col-span-full py-6 text-center text-[1.3rem] font-bold text-ink-2">Nothing matches. Try another word, or import it from a link.</p>}
       </div>
+      <ImportRecipeSheet
+        open={importing}
+        onOpenChange={setImporting}
+        onSaved={(r) => {
+          setImporting(false);
+          void choose(r);
+        }}
+      />
     </Sheet>
   );
 }

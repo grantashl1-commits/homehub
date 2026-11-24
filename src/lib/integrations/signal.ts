@@ -60,6 +60,8 @@ interface SignalState {
   email?: string;
   list?: ListItem[];
   picks?: Picks;
+  /** The family's own recipes from SIGNAL "My recipes". */
+  myRecipes?: Recipe[];
   error?: string;
   busy: boolean;
 }
@@ -97,8 +99,8 @@ export async function signalSignOut() {
 
 export async function refreshSignal() {
   try {
-    const [list, picks] = await Promise.all([fetchList(), fetchPicks()]);
-    useSignal.setState({ list, picks, error: undefined });
+    const [list, picks, myRecipes] = await Promise.all([fetchList(), fetchPicks(), fetchMyRecipes().catch(() => undefined)]);
+    useSignal.setState({ list, picks, error: undefined, ...(myRecipes ? { myRecipes } : {}) });
   } catch (e) {
     useSignal.setState({ error: e instanceof Error ? e.message : String(e) });
   }
@@ -176,6 +178,30 @@ export function signalAddItem(name: string, category?: string, recipe?: string) 
       ...(recipe ? { recipeSays: recipe } : {}),
     });
   });
+}
+
+/** Add several things at once (one save), e.g. a recipe's ingredients. Returns how many were new. */
+export async function signalAddItems(items: { name: string; category?: string }[], recipe?: string): Promise<number> {
+  let added = 0;
+  await mutateList((row) => {
+    added = 0;
+    for (const it of items) {
+      const clean = it.name.trim();
+      if (!clean) continue;
+      if (row.custom.some((i) => i.name.toLowerCase() === clean.toLowerCase() && !row.checked[itemKey(i)])) continue;
+      row.custom.push({
+        name: clean,
+        totalQty: 1,
+        unit: "",
+        category: it.category ?? categorise(clean),
+        searchTerm: clean.toLowerCase(),
+        isCustom: true,
+        ...(recipe ? { recipeSays: recipe } : {}),
+      });
+      added++;
+    }
+  });
+  return added;
 }
 
 export function signalToggleItem(id: string) {
@@ -258,7 +284,75 @@ export function loadRecipes(): Promise<Map<string, Recipe>> {
 
 export function recipeImage(r: Recipe | undefined | null): string | undefined {
   if (!r?.image) return undefined;
-  return r.image.startsWith("http") ? r.image : `${SIGNAL_SITE}${r.image}`;
+  return /^(https?:|data:)/.test(r.image) ? r.image : `${SIGNAL_SITE}${r.image}`;
+}
+
+/* ── The family's own recipes (SIGNAL "My recipes", public.user_recipes) ── */
+
+interface UserRecipeRow {
+  id: string;
+  title: string;
+  category: string;
+  ingredients: string[];
+  instructions: string[];
+  estimated_time: number | null;
+  image_url: string | null;
+  source_url: string | null;
+}
+
+const CATEGORY_FROM_SIGNAL: Record<string, string> = { Breakfast: "breakfast", Lunch: "meal", Dinner: "meal", Snack: "snack", Baking: "baking" };
+
+function fromRow(r: UserRecipeRow): Recipe {
+  return {
+    id: `user:${r.id}`,
+    name: r.title,
+    image: r.image_url,
+    ingredients: r.ingredients ?? [],
+    serves: null,
+    time: r.estimated_time ? `${r.estimated_time} min` : null,
+    category: CATEGORY_FROM_SIGNAL[r.category] ?? "meal",
+    method: r.instructions ?? [],
+    mine: true,
+    sourceUrl: r.source_url,
+  };
+}
+
+async function fetchMyRecipes(): Promise<Recipe[]> {
+  const uid = useSignal.getState().userId;
+  if (!uid) return [];
+  const { data, error } = await sb()
+    .from("user_recipes")
+    .select("id, title, category, ingredients, instructions, estimated_time, image_url, source_url")
+    .eq("user_id", uid)
+    .order("created_at", { ascending: false })
+    .limit(500);
+  if (error) throw error;
+  return ((data ?? []) as UserRecipeRow[]).map(fromRow);
+}
+
+export interface NewRecipe {
+  title: string;
+  category: string;
+  ingredients: string[];
+  instructions: string[];
+  estimated_time: number | null;
+  image_url: string | null;
+  source_url: string | null;
+}
+
+/** Save to SIGNAL "My recipes" (the same table SIGNAL's own Add recipe writes). */
+export async function saveMyRecipe(input: NewRecipe): Promise<Recipe> {
+  const uid = useSignal.getState().userId;
+  if (!uid) throw new Error("Sign in to SIGNAL in Parent → Connections first.");
+  const { data, error } = await sb()
+    .from("user_recipes")
+    .insert({ user_id: uid, ...input })
+    .select("id, title, category, ingredients, instructions, estimated_time, image_url, source_url")
+    .single();
+  if (error) throw error;
+  const recipe = fromRow(data as UserRecipeRow);
+  useSignal.setState((s) => ({ myRecipes: [recipe, ...(s.myRecipes ?? [])] }));
+  return recipe;
 }
 
 /** Strip quantities so "250g chicken thighs, diced" becomes "chicken thighs". */

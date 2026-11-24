@@ -160,3 +160,22 @@ Verified at 1180×820 (iPad), 1366×768 (Chromebook) and 1920×1080 (wall).
   transcript is still saved.
 - Each person's lines appear under **My reflections** on their profile, with
   read-aloud. Saved reflections sync with the family account.
+
+## 24 Nov 2026: recipes: search everything, import from a link, straight onto the list
+
+- The dinner picker searched only dinners that had a photo, so breakfast
+  and baking recipes (every pancake recipe) and 136 photo-less recipes never
+  showed. It now searches all 1,039 SIGNAL recipes plus the family's own
+  SIGNAL "My recipes", by name then ingredients, with filters (All, Dinners,
+  Breakfast, Snacks & baking, Our recipes).
+- **Import from a link** (in the picker): `/api/recipe-import` reads the page
+  (its schema.org recipe data when it has it, using SIGNAL's own reader copied
+  to `api/_recipe-schema.ts`), and DeepSeek writes it up SIGNAL-style with the
+  amounts in each method step. Check it, keep the website's photo or upload
+  your own (shrunk to a 1000px JPEG on the recipe), and save to SIGNAL's
+  My recipes (`user_recipes`, under SIGNAL's RLS). It's then picked for that day.
+- Choosing a dinner puts its ingredients on the shopping list (SIGNAL when
+  connected), labelled with the recipe, skipping anything already there;
+  delete what's already in the cupboard. Note: SIGNAL's own list screen also
+  works out meal-plan ingredients itself, so a library recipe can show twice
+  there. The family's own recipes don't.

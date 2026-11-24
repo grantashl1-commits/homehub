@@ -7,7 +7,9 @@ import { useHub } from "./store";
 import { addDays, dateKey, fromDateKey, startOfWeek } from "./time";
 import type { Chore, ListItem, Member, Recipe } from "./types";
 import {
+  ingredientName,
   loadRecipes,
+  signalAddItems,
   signalAddItem,
   signalClearChecked,
   signalRemoveItem,
@@ -93,6 +95,24 @@ export function useMarbles(member: Member | undefined): number {
 
 /* ── Shopping list ─────────────────────────────────────────────────────── */
 
+/**
+ * Put a recipe's ingredients on the shopping list (SIGNAL when connected, else
+ * this screen's list), skipping anything already on it. Each item is labelled
+ * with the recipe so it's easy to delete what's already in the cupboard.
+ * Returns how many were added.
+ */
+export async function addRecipeToList(recipe: Recipe): Promise<number> {
+  const names = [...new Set(recipe.ingredients.map(ingredientName).filter(Boolean))];
+  if (!names.length) return 0;
+  if (useSignal.getState().userId) {
+    return signalAddItems(names.map((name) => ({ name })), recipe.name);
+  }
+  const hub = useHub.getState();
+  const before = hub.localList.length;
+  for (const n of names) hub.addLocalItem(n, categorise(n), undefined, recipe.name);
+  return useHub.getState().localList.length - before;
+}
+
 export function useShoppingList() {
   const signalUser = useSignal((s) => s.userId);
   const signalList = useSignal((s) => s.list);
@@ -148,7 +168,21 @@ export function useShoppingList() {
 
 /* ── Meals ─────────────────────────────────────────────────────────────── */
 
+/** SIGNAL's recipe library, plus the family's own SIGNAL recipes when signed in. */
 export function useRecipes(): Map<string, Recipe> | undefined {
+  const library = useLibraryRecipes();
+  const mine = useSignal((s) => (s.userId ? s.myRecipes : undefined));
+  return useMemo(() => {
+    if (!library) return undefined;
+    if (!mine?.length) return library;
+    const all = new Map<string, Recipe>();
+    for (const r of mine) all.set(r.id, r);
+    for (const [k, v] of library) all.set(k, v);
+    return all;
+  }, [library, mine]);
+}
+
+function useLibraryRecipes(): Map<string, Recipe> | undefined {
   const [recipes, setRecipes] = useState<Map<string, Recipe>>();
   useEffect(() => {
     let alive = true;
