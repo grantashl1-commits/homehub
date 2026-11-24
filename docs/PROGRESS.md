@@ -229,3 +229,11 @@ wall layouts are unchanged.
   the nav, and the filter row scrolls sideways.
 - List: the page scrolls instead of an inner box; names no longer truncate.
 - Checked at iPhone 13 size: no page scrolls sideways.
+
+## 24 Nov 2026: recipe import reads sites that block servers
+
+- Some recipe sites (e.g. vegansociety.org.nz) refuse requests from cloud
+  servers, so the import said "That site wouldn't let us read the page".
+  It now falls back to reading the page through Jina Reader, the same
+  fallback SIGNAL's own importer uses, and DeepSeek picks out the recipe and
+  its main photo from that text.
