@@ -271,3 +271,15 @@ wall layouts are unchanged.
 - Snap a notice: separate "Take a photo" and "Choose from photos" buttons
   (the camera-only input hid the photo library on Android). Snap reads with
   Claude vision (ANTHROPIC_API_KEY); DeepSeek's API can't read images.
+
+## 24 Nov 2026: Habit Adventure game for the kids
+
+The printable habit worksheet as a game, from each kid's Me page
+("Habit Adventure", /me/:id/adventure). Read-aloud all the way through.
+1. Which ones sound fun? 13 picture cards, tap a face (yes, maybe, not yet).
+2. Habit games: colour the rainbow (tap a crayon, tap to fill), join the dots
+   1–10 to find a reward star, the toothbrush maze (arrows, swipe or keys,
+   new maze each time), and "when do we do it?" (no wrong answers).
+3. Pick a habit (the loved ones first), when you'll do it, then press and
+   hold the hand to make a high-five promise. That adds the habit, so it
+   comes up at dinnertime reflection and on the habits page.
