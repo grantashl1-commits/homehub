@@ -23,7 +23,7 @@ const DOCK = [
 
 export function AppShell() {
   const { pathname } = useLocation();
-  const fullBleed = pathname.startsWith("/reflect");
+  const fullBleed = pathname.startsWith("/reflect") || pathname.endsWith("/adventure");
   useAmbientBehaviour();
 
   return (

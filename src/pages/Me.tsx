@@ -100,7 +100,7 @@ export function KidZone() {
         <div className="card flex min-h-0 flex-1 flex-col p-6 max-md:flex-none max-md:p-3.5">
           {isKid ? <Jobs member={member} /> : <MyNotes member={member} />}
         </div>
-        <div className="grid grid-cols-3 gap-[1.3rem] [&>button]:whitespace-nowrap [&>button]:px-5 [&>button]:text-[1.45rem] max-md:gap-2 max-md:[&>button]:flex-col max-md:[&>button]:gap-1 max-md:[&>button]:px-1 max-md:[&>button]:py-2.5 max-md:[&>button]:text-[1.15rem]">
+        <div className={cn("grid gap-[1.3rem] [&>button]:whitespace-nowrap [&>button]:px-5 [&>button]:text-[1.45rem] max-md:gap-2 max-md:[&>button]:flex-col max-md:[&>button]:gap-1 max-md:[&>button]:px-1 max-md:[&>button]:py-2.5 max-md:[&>button]:text-[1.15rem]", member.role === "child" ? "grid-cols-4 max-md:grid-cols-3 md:[&>button]:flex-col md:[&>button]:gap-1 md:[&>button]:px-2 md:[&>button]:py-2 md:[&>button]:text-[1.3rem]" : "grid-cols-3")}>
           <BigButton tone="sage" size="lg" icon={<ShoppingBasket className="size-8" />} onClick={() => setListOpen(true)}>
             Add to list
           </BigButton>
@@ -110,6 +110,11 @@ export function KidZone() {
           <BigButton tone="lilac" size="lg" icon={<StickyNote className="size-8" />} onClick={() => navigate(`/notes?add=1&from=${member.id}`)}>
             Write a note
           </BigButton>
+          {member.role === "child" && (
+            <BigButton tone="coral" size="lg" className="max-md:hidden" icon={<span className="text-[2.2rem] leading-none">🗺️</span>} onClick={() => navigate(`/me/${member.id}/adventure`)}>
+              Habit Adventure
+            </BigButton>
+          )}
         </div>
       </div>
       <KidListSheet open={listOpen} onOpenChange={setListOpen} member={member} tint={p.tint} />
@@ -195,6 +200,22 @@ function ProfileCard({ member }: { member: Member }) {
           )}
         </span>
       </Link>
+
+      {member.role === "child" && (
+        <Link
+          to={`/me/${member.id}/adventure`}
+          onClick={() => sfx.pop()}
+          className="tap mt-3 flex w-full items-center gap-3 rounded-[1.4rem] p-3 text-left text-white shadow-[var(--shadow-soft)] max-md:mt-2.5 md:hidden"
+          style={{ background: `linear-gradient(120deg, ${p.shade}, #EE7B5B)` }}
+        >
+          <span className="text-[3rem] leading-none">🗺️</span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-display text-[1.8rem] font-black leading-none">Habit Adventure</span>
+            <span className="block text-[1.1rem] font-bold opacity-90">Games, colouring and a new habit to try</span>
+          </span>
+          <span className="text-[2rem] leading-none">▶</span>
+        </Link>
+      )}
     </section>
   );
 }
