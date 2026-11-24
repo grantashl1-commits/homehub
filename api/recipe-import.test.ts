@@ -48,6 +48,31 @@ describe("POST /api/recipe-import", () => {
     expect(sentToDeepseek).toContain("Recipe data from the page");
   });
 
+  it("reads the page through Jina Reader when the site refuses the server", async () => {
+    let viaReader = "";
+    vi.stubGlobal("fetch", async (input: string | URL | Request, init?: RequestInit) => {
+      const u = input instanceof Request ? input.url : String(input);
+      if (u.startsWith("https://r.jina.ai/")) {
+        viaReader = u;
+        return new Response(`Title: Mexican bean burrito\n\n![burrito](https://example.org/burrito.jpg)\n\nIngredients\n- 400g can black beans\n- 4 tortillas\n\nMethod\n1. Warm the beans.\n2. Fill the tortillas.\n${"More text about this lovely recipe. ".repeat(8)}`, { status: 200 });
+      }
+      if (u.startsWith("https://api.deepseek.com")) {
+        sentToDeepseek = String(init?.body);
+        const content = JSON.stringify({ title: "Mexican bean burrito", category: "Dinner", estimated_time: 20, serves: 4, ingredients: ["400g can black beans", "4 tortillas"], instructions: ["Warm the 400g can of beans.", "Fill the 4 tortillas."], image_url: "https://example.org/burrito.jpg" });
+        return new Response(JSON.stringify({ choices: [{ message: { content } }] }), { status: 200 });
+      }
+      return new Response("Forbidden", { status: 403 });
+    });
+    const res = await POST(req("https://vegansociety.org.nz/mexican-bean-burrito/"));
+    expect(res.status).toBe(200);
+    const { recipe, via } = (await res.json()) as { recipe: Record<string, unknown>; via: string };
+    expect(via).toBe("reader");
+    expect(viaReader).toBe("https://r.jina.ai/https://vegansociety.org.nz/mexican-bean-burrito/");
+    expect(recipe.title).toBe("Mexican bean burrito");
+    expect(recipe.image_url).toBe("https://example.org/burrito.jpg");
+    expect(sentToDeepseek).toContain("with image links");
+  });
+
   it("refuses private addresses", async () => {
     const res = await POST(req("http://192.168.1.1/admin"));
     expect(res.status).toBe(400);

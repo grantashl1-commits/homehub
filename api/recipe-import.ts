@@ -34,6 +34,24 @@ async function fetchPage(url: URL): Promise<string | null> {
   }
 }
 
+/**
+ * The page's readable text via Jina Reader, for sites that refuse requests
+ * from cloud servers (the same fallback SIGNAL's recipe-from-url uses).
+ */
+async function fetchViaReader(url: URL): Promise<string | null> {
+  try {
+    const res = await fetch(`https://r.jina.ai/${url.toString()}`, {
+      headers: { "user-agent": UA, accept: "text/plain" },
+      signal: AbortSignal.timeout(20_000),
+    });
+    if (!res.ok) return null;
+    const text = (await res.text()).trim();
+    return text.length >= 200 ? text : null;
+  } catch {
+    return null;
+  }
+}
+
 function pageText(html: string): string {
   return cleanText(
     html
@@ -57,6 +75,7 @@ Rules:
 - Ingredients: one per line, amount first, metric where the page gives a choice, NZ names (capsicum, coriander, courgette, kūmara where it fits). e.g. "400g can black beans, drained and rinsed".
 - Instructions: short imperative steps in SIGNAL style that include the amounts as you go, so the cook never has to look back at the ingredient list. e.g. "Heat 1 tbsp olive oil in a large pot. Add 1 diced onion and 2 crushed garlic cloves and cook for 3 min." Keep 4 to 9 steps.
 - Don't invent ingredients or steps that aren't on the page. Keep the cook's quantities.
+- image_url: the recipe's main photo (a full https image link from the page), or null.
 - If there is no recipe, reply {"error": "No recipe found on this page"}.`;
 
 export async function POST(request: Request): Promise<Response> {
@@ -76,12 +95,15 @@ export async function POST(request: Request): Promise<Response> {
   if (!url) return json({ error: "That doesn't look like a web link. Copy the full address of the recipe page." }, 400);
 
   const html = await fetchPage(url);
-  if (!html) return json({ error: "That site wouldn't let us read the page. Try another link." }, 422);
-
-  const fromSchema = recipeFromHtml(html, url.toString());
+  const fromSchema = html ? recipeFromHtml(html, url.toString()) : null;
+  // No recipe data on the page, or the site refused us: read it through Jina Reader instead.
+  const readerText = fromSchema ? null : (html ? null : await fetchViaReader(url));
+  if (!html && !readerText) return json({ error: "That site wouldn't let us read the page, even through a reader. Try another link." }, 422);
   const source = fromSchema
     ? `Recipe data from the page:\n${JSON.stringify(fromSchema)}`
-    : `Page text:\n${pageText(html).slice(0, 14_000)}`;
+    : readerText
+      ? `Page text (with image links):\n${readerText.slice(0, 16_000)}`
+      : `Page text:\n${pageText(html!).slice(0, 14_000)}`;
   if (!fromSchema && source.length < 300) return json({ error: "There isn't a recipe on that page we can read." }, 422);
 
   try {
@@ -94,8 +116,8 @@ export async function POST(request: Request): Promise<Response> {
       return { ...r, serves };
     })();
     if (!recipe) return json({ error: "We couldn't pick a recipe out of that page." }, 422);
-    recipe.image_url ??= fromSchema?.image_url ?? ogImage(html);
-    return json({ recipe, via: fromSchema ? "schema" : "text" });
+    recipe.image_url ??= fromSchema?.image_url ?? (html ? ogImage(html) : null);
+    return json({ recipe, via: fromSchema ? "schema" : readerText ? "reader" : "text" });
   } catch (e) {
     return errorResponse(e, "Couldn't read that recipe");
   }
