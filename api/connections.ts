@@ -14,6 +14,7 @@ const isName = (n: unknown): n is FamilySecret => typeof n === "string" && (FAMI
 
 function check(name: FamilySecret, value: string): string | null {
   if (!value || value.length > 4000) return "That doesn't look right.";
+  if (name === "GOOGLE_TASKS_REFRESH_TOKEN") return "Use Connect Google Tasks instead of pasting this.";
   if (name.endsWith("_ICAL_URL") && !/^(https|webcal):\/\/\S+$/i.test(value)) return "Paste the calendar's secret address in iCal format (it starts with https://).";
   if (name === "NOTION_TOKEN" && !/^(ntn_|secret_)\S{20,}$/.test(value)) return "A Notion internal integration secret starts with ntn_.";
   if (name.startsWith("NOTION_DS_") && !/^[0-9a-f-]{32,36}$/i.test(value)) return "That isn't a Notion data source id.";

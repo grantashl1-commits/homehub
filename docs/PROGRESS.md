@@ -380,3 +380,17 @@ The printable habit worksheet as a game, from each kid's Me page
   (bucket `hub-media`, migration 20261125000000_family_media.sql), so a note
   recorded on the tablet plays on the desktop. Each screen shares its older
   recordings once when signed in. Needs the migration run on the hub project.
+
+## 25 Nov 2026: Google Tasks on the fridge
+
+- Google Tasks (Google Calendar → Create → Task) aren't in the iCal feed, so
+  /api/google-tasks reads them with a grown-up's one-time Google OK (OAuth,
+  `tasks` scope; refresh token encrypted in household_secrets as
+  GOOGLE_TASKS_REFRESH_TOKEN). Parent → Connections → Google Tasks.
+- Each open task is a "☑️ To do" card on the fridge (Notes page, first) and
+  on the home Fridge notes card: title, due date (red when overdue), notes.
+  Open it for the full description; "Done, peel it off" marks it complete in
+  Google. Counted in the fridge totals and the Notes tab badge.
+- Google's Tasks API gives the title, notes and one date ("due"); Calendar's
+  separate start date isn't in the API, so the card shows the due date.
+- Needs GOOGLE_OAUTH_CLIENT_ID / SECRET in Vercel (docs/SETUP.md → Google Tasks).

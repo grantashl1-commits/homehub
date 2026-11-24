@@ -20,6 +20,8 @@ import { Avatar } from "@/components/Avatar";
 import { JarProgress, MarbleJar } from "@/components/MarbleJar";
 import { ReadAloud } from "@/components/ui";
 import { cn } from "@/lib/utils";
+import { useGoogleTasks } from "@/lib/integrations/google-tasks";
+import { TaskCard } from "@/components/TaskCard";
 import { sfx } from "@/lib/device";
 
 const SKIES = {
@@ -450,24 +452,32 @@ function NotesTile() {
   const notes = useHub(useShallow((s) => s.notes.filter((n) => !n.doneAt)));
   const members = useHub((s) => s.members);
   const unread = useHub((s) => new Set(s.members.flatMap((m) => unreadNotesFor(s.notes, m.id).map((n) => n.id))).size);
-  const shown = notes.slice(0, 4);
+  const { tasks } = useGoogleTasks();
+  const navigate = useNavigate();
+  // Google tasks stay on the fridge until peeled off, so they come first.
+  const shownTasks = tasks.slice(0, 2);
+  const shown = notes.slice(0, Math.max(0, 4 - shownTasks.length));
+  const total = notes.length + tasks.length;
   return (
     <Link to="/notes" onClick={() => sfx.tap()} className="tap fridge relative flex min-h-[18rem] flex-col overflow-hidden rounded-[2rem] p-5 shadow-[var(--shadow-soft)] ring-1 ring-black/5 md:min-h-0">
       <div className="flex items-center justify-between gap-2">
         <p className="text-[1.15rem] font-black uppercase tracking-[0.08em] text-lilac-ink">Fridge notes</p>
         <span className="rounded-full bg-lilac px-3 py-0.5 text-[1.1rem] font-black text-white">
-          {notes.length} note{notes.length === 1 ? "" : "s"}
+          {total} note{total === 1 ? "" : "s"}
           {unread > 0 ? ` · ${unread} new` : ""}
         </span>
       </div>
       <div className="mt-2 grid min-h-0 flex-1 grid-cols-2 content-start gap-3 overflow-hidden px-1.5 pb-2 pt-2.5">
+        {shownTasks.map((t) => (
+          <TaskCard key={`gt-${t.id}`} task={t} small onOpen={() => navigate("/notes")} />
+        ))}
         {shown.map((n, i) => {
           const c = noteColor(n.color);
           const from = members.find((m) => m.id === n.from);
           return (
             <motion.div
               key={n.id}
-              className={cn("relative rounded-[0.6rem] p-3 pt-4 shadow-[0_8px_16px_-8px_rgb(0_0_0/0.3)]", i >= 2 && "md:hidden")}
+              className={cn("relative rounded-[0.6rem] p-3 pt-4 shadow-[0_8px_16px_-8px_rgb(0_0_0/0.3)]", i + shownTasks.length >= 2 && "md:hidden")}
               style={{ background: c.bg, color: c.ink, rotate: [-3, 2.5, 2, -2][i % 4] }}
               whileHover={{ rotate: 0 }}
             >
@@ -479,11 +489,11 @@ function NotesTile() {
             </motion.div>
           );
         })}
-        {notes.length === 0 && <p className="col-span-2 pt-4 text-[1.35rem] font-bold text-ink-2">Leave the first note!</p>}
+        {total === 0 && <p className="col-span-2 pt-4 text-[1.35rem] font-bold text-ink-2">Leave the first note!</p>}
       </div>
-      {notes.length > 0 && (
+      {total > 0 && (
         <p className="mt-2 text-right text-[1.1rem] font-black text-lilac-ink">
-          View all {notes.length} →
+          View all {total} →
         </p>
       )}
     </Link>

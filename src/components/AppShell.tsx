@@ -4,6 +4,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { CalendarDays, Home, Lock, LockOpen, ShoppingBasket, Smile, StickyNote, UtensilsCrossed } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useGoogleTasks } from "@/lib/integrations/google-tasks";
 import { useHub } from "@/lib/store";
 import { useNow, useShoppingList } from "@/lib/hooks";
 import { formatDateLong, formatTime } from "@/lib/time";
@@ -111,7 +112,8 @@ function Dock() {
   const notes = useHub((s) => s.notes);
   const { items } = useShoppingList();
   // Notes on the fridge, the same number the home card shows.
-  const onFridge = notes.filter((n) => !n.doneAt).length;
+  const { tasks } = useGoogleTasks();
+  const onFridge = notes.filter((n) => !n.doneAt).length + tasks.length;
   const listCount = items.filter((i) => !i.checked).length;
   const badges: Record<string, number> = { "/notes": onFridge, "/list": listCount };
 
