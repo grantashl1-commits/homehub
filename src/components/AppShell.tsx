@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { Suspense, useEffect, useRef } from "react";
 import { create } from "zustand";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
@@ -40,7 +40,9 @@ export function AppShell() {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
           >
-            <Outlet />
+            <Suspense fallback={null}>
+              <Outlet />
+            </Suspense>
           </motion.div>
         </AnimatePresence>
       </main>

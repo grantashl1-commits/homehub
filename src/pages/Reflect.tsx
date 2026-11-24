@@ -17,9 +17,12 @@ import { BigButton, ChoreIcon, ReadAloud } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { useTranscriber } from "@/lib/transcribe";
 import { RecordPill, SaveReflection } from "@/components/ReflectionRecorder";
-import { pointpalsAwardHabit } from "@/lib/integrations/pointpals";
+import { pointpalsAward, pointpalsAwardHabit, usePointPals } from "@/lib/integrations/pointpals";
+import { canListen, listenOnce } from "@/lib/device";
+import { celebrate } from "@/components/Celebrate";
+import { toast } from "sonner";
 
-type Phase = "intro" | "ask" | "why" | "summary";
+type Phase = "intro" | "ask" | "why" | "nominate" | "summary";
 
 /** One question at the table: a person and one of their habits (none yet: pick one). */
 interface Step {
@@ -78,12 +81,20 @@ export default function Reflect() {
       setPhase("ask");
       sfx.pop();
     } else {
-      completeNight(members.map((m) => m.id));
-      setPhase("summary");
-      sfx.success();
-      if (!reducedMotion) void confetti({ particleCount: 180, spread: 110, origin: { y: 0.6 }, scalar: 1.3 });
+      // After everyone's habits: anyone earned a marble from the family today?
+      setPhase("nominate");
+      sfx.pop();
+      speak("Would you like to give a marble to anyone today? If so, why?");
     }
   };
+
+  const finishNight = () => {
+    completeNight(members.map((m) => m.id));
+    setPhase("summary");
+    sfx.success();
+    if (!reducedMotion) void confetti({ particleCount: 180, spread: 110, origin: { y: 0.6 }, scalar: 1.3 });
+  };
+  const [nominations, setNominations] = useState<{ memberId: string; why: string }[]>([]);
 
   const yes = () => {
     if (!person || !habit || busy) return;
@@ -271,8 +282,27 @@ export default function Reflect() {
             </Stage>
           )}
 
+          {phase === "nominate" && (
+            <Stage key="nominate">
+              <Nominate given={nominations} listening={recorder.listening} onGive={(n) => setNominations((x) => [...x, n])} onDone={finishNight} />
+            </Stage>
+          )}
+
           {phase === "summary" && (
             <Summary key="summary" onDone={() => navigate("/")} streak={familyStreak(nights)} onRenew={(id) => updateHabit(id, { startDate: today })}>
+              {nominations.length > 0 && (
+                <div className="flex flex-wrap justify-center gap-2">
+                  {nominations.map((n, i) => {
+                    const m = members.find((x) => x.id === n.memberId);
+                    return (
+                      <span key={i} className="flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-[1.2rem] font-extrabold shadow-sm">
+                        <ChoreIcon icon="thumbs up.png" size={2.2} /> {m?.name}
+                        {n.why && <span className="font-bold text-ink-2">· {n.why}</span>}
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
               <SaveReflection t={recorder} />
             </Summary>
           )}
@@ -296,7 +326,7 @@ export default function Reflect() {
 function Stage({ children }: { children: React.ReactNode }) {
   return (
     <motion.div
-      className="absolute inset-0 flex flex-col items-center justify-center gap-5 text-center max-md:relative max-md:inset-auto max-md:gap-4 max-md:py-6"
+      className="no-scrollbar absolute inset-0 flex flex-col items-center gap-5 overflow-y-auto py-3 text-center max-md:relative max-md:inset-auto max-md:gap-4 max-md:overflow-visible max-md:py-6 [&>*:first-child]:mt-auto [&>*:last-child]:mb-auto"
       initial={{ opacity: 0, x: 60, scale: 0.98 }}
       animate={{ opacity: 1, x: 0, scale: 1 }}
       exit={{ opacity: 0, x: -60, scale: 0.98 }}
@@ -400,5 +430,128 @@ function Summary({ onDone, streak, onRenew, children }: { onDone: () => void; st
         Goodnight table! 🌙
       </BigButton>
     </Stage>
+  );
+}
+
+const REASONS = ["Being kind", "Helping out", "Working hard", "Being brave", "Sharing", "Making us laugh"];
+
+/**
+ * "Would you like to give a marble to anyone today? Why?" Pick a person, say
+ * or type why (or tap a reason), and a 👍 marble goes in their PointPals jar
+ * (or their hub marbles when they're not in PointPals). As many as you like.
+ */
+function Nominate({
+  given,
+  listening,
+  onGive,
+  onDone,
+}: {
+  given: { memberId: string; why: string }[];
+  listening: boolean;
+  onGive: (n: { memberId: string; why: string }) => void;
+  onDone: () => void;
+}) {
+  const members = useHub((s) => s.members);
+  const ppReady = usePointPals((s) => !!s.userId && !!s.household);
+  const [who, setWho] = useState<Member | null>(null);
+  const [why, setWhy] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [hearing, setHearing] = useState(false);
+  const phone = useIsPhone();
+
+  const give = async () => {
+    if (!who || busy) return;
+    setBusy(true);
+    const reason = why.trim();
+    try {
+      if (ppReady && who.pointpalsKidId) {
+        await pointpalsAward(who.pointpalsKidId, { name: reason ? `Marble from the family: ${reason}` : "Marble from the family", icon: "thumbs up.png", points: 1 });
+      } else {
+        useHub.getState().addLocalMarbles(who.id, 1);
+      }
+      sfx.marble();
+      celebrate({ title: `A marble for ${who.name}!`, subtitle: reason || "From the whole family", palId: who.palId, photo: who.photo });
+      onGive({ memberId: who.id, why: reason });
+      setWho(null);
+      setWhy("");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "PointPals didn't take that marble");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex w-full max-w-[64rem] flex-col items-center gap-3.5">
+      {!who && <ChoreIcon icon="thumbs up.png" size={phone ? 5 : 6.4} />}
+      <div className="flex items-center gap-3">
+        <h1 className="font-display text-[3.2rem] font-black leading-none max-md:text-[2.4rem]">Give a marble to anyone today?</h1>
+        <ReadAloud text="Would you like to give a marble to anyone today? If so, why?" />
+      </div>
+      <p className="text-[1.5rem] font-bold text-ink-2">Who did something great? Tap them, then tell us why.</p>
+      <div className="flex flex-wrap justify-center gap-4 max-md:gap-2.5">
+        {members.map((m) => {
+          const gotOne = given.some((g) => g.memberId === m.id);
+          return (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => {
+                sfx.pop();
+                setWho(who?.id === m.id ? null : m);
+              }}
+              aria-pressed={who?.id === m.id}
+              className={cn("tap relative flex flex-col items-center gap-1 rounded-[1.8rem] bg-white/80 p-3 shadow-[var(--shadow-soft)]", who?.id === m.id && "ring-[0.35rem] ring-sage")}
+            >
+              <Avatar member={m} size={phone ? 4.6 : who ? 4.6 : 6} />
+              <span className="font-display text-[1.7rem] font-black">{m.name}</span>
+              {gotOne && <span className="absolute -right-1 -top-1 grid size-[2.6rem] place-items-center rounded-full bg-sage text-[1.3rem] shadow">👍</span>}
+            </button>
+          );
+        })}
+      </div>
+      {who && (
+        <div className="flex w-full max-w-[50rem] flex-col gap-3 rounded-[2rem] bg-white/85 p-4 shadow-[var(--shadow-soft)]">
+          <div className="flex flex-wrap justify-center gap-2">
+            {REASONS.map((r) => (
+              <button key={r} type="button" onClick={() => (sfx.tap(), setWhy(r))} className={cn("tap rounded-full px-4 py-2 text-[1.2rem] font-black", why === r ? "bg-ink text-white" : "bg-paper text-ink-2")}>
+                {r}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input
+              value={why}
+              onChange={(e) => setWhy(e.target.value)}
+              maxLength={120}
+              placeholder={`Why does ${who.name} get a marble?`}
+              className="h-[4.6rem] min-w-0 flex-1 rounded-[1.2rem] border-2 border-line bg-white px-4 text-[1.4rem] font-bold outline-none focus:border-sky"
+            />
+            {canListen() && !listening && (
+              <button
+                type="button"
+                aria-label="Say why"
+                disabled={hearing}
+                onClick={async () => {
+                  setHearing(true);
+                  const said = await listenOnce().promise;
+                  setHearing(false);
+                  if (said) setWhy(said.replace(/^./, (c) => c.toUpperCase()));
+                }}
+                className={cn("tap grid size-[4.6rem] shrink-0 place-items-center rounded-[1.2rem] text-white", hearing ? "bg-coral" : "bg-ink")}
+              >
+                <Mic className="size-7" />
+              </button>
+            )}
+          </div>
+          <BigButton tone="sage" size="lg" disabled={busy} onClick={() => void give()} icon={<ChoreIcon icon="thumbs up.png" size={3} />}>
+            Give {who.name} a marble
+          </BigButton>
+        </div>
+      )}
+      <BigButton size="lg" tone={given.length ? "coral" : "white"} onClick={onDone} icon={<ArrowRight className="size-8" strokeWidth={3} />}>
+        {given.length ? "All done" : "Not today"}
+      </BigButton>
+    </div>
   );
 }

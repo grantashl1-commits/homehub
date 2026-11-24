@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { Check, Hourglass, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useHub, unreadNotesFor } from "@/lib/store";
+import { noteColor } from "@/lib/catalog";
 import { useChoresFor, useFamilyJar, useMarbles, useMember, type ChoreView } from "@/lib/hooks";
 import { pal } from "@/lib/pals";
 import { sfx } from "@/lib/device";
@@ -115,7 +116,7 @@ function ProfileCard({ member }: { member: Member }) {
 
   return (
     <section
-      className="relative flex flex-col items-center overflow-hidden rounded-[2.2rem] p-6 text-center shadow-[var(--shadow-lift)] max-md:rounded-[1.8rem] max-md:p-3.5"
+      className="no-scrollbar relative flex min-h-0 flex-col items-center overflow-hidden rounded-[2.2rem] p-6 text-center shadow-[var(--shadow-lift)] max-md:rounded-[1.8rem] max-md:p-3.5 md:overflow-y-auto"
       style={{ background: `linear-gradient(170deg, ${p.color} 0%, ${p.tint} 55%, #fff 100%)` }}
     >
       {/* Phones: a row with the photo beside the hello, so the jobs sit higher up. */}
@@ -151,9 +152,76 @@ function ProfileCard({ member }: { member: Member }) {
         </div>
       )}
 
+      <MyNotesCard member={member} />
       <MyReflections member={member} />
-
     </section>
+  );
+}
+
+/**
+ * New fridge notes for this person (to them, or to everyone). Tapping one
+ * marks it read, which clears the ✉️ on their face on the home screen.
+ */
+function MyNotesCard({ member }: { member: Member }) {
+  const navigate = useNavigate();
+  const members = useHub((s) => s.members);
+  const unread = useHub(useShallow((s) => unreadNotesFor(s.notes, member.id)));
+  const markNoteSeen = useHub((s) => s.markNoteSeen);
+  const readAll = () => {
+    sfx.pop();
+    for (const n of unread) markNoteSeen(n.id, member.id);
+  };
+  return (
+    <div className="mt-3 w-full rounded-[1.4rem] bg-white/85 p-3 text-left shadow-sm max-md:mt-2.5">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[1.05rem] font-black uppercase tracking-[0.08em] text-ink-3">
+          💌 {unread.length ? `${unread.length} new note${unread.length === 1 ? "" : "s"}` : "My notes"}
+        </p>
+        {unread.length > 1 ? (
+          <button type="button" onClick={readAll} className="tap rounded-full bg-paper px-3 py-1 text-[1rem] font-black text-ink-2">
+            Read all ✓
+          </button>
+        ) : (
+          <button type="button" onClick={() => navigate("/notes")} className="tap rounded-full bg-paper px-3 py-1 text-[1rem] font-black text-ink-2">
+            All notes →
+          </button>
+        )}
+      </div>
+      {unread.length === 0 ? (
+        <p className="mt-1 text-[1.2rem] font-bold text-ink-2">No new notes. All caught up! ✨</p>
+      ) : (
+        <ul className="mt-2 flex max-h-[16rem] flex-col gap-2 overflow-y-auto no-scrollbar">
+          {unread.map((n) => {
+            const c = noteColor(n.color);
+            const from = members.find((m) => m.id === n.from);
+            const text = n.kind === "voice" ? "🎤 Voice note" : n.kind === "doodle" ? "🖍️ A drawing" : n.text ?? "";
+            return (
+              <li key={n.id} className="flex items-start gap-2 rounded-[0.8rem] p-2.5 shadow-sm" style={{ background: c.bg, color: c.ink }}>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[1.25rem] font-extrabold leading-snug">{text}</p>
+                  <p className="text-[1rem] font-black opacity-70">
+                    – {from?.name ?? "Someone"}
+                    {n.to === "everyone" ? " to everyone" : ""}
+                  </p>
+                </div>
+                {n.kind === "text" && n.text && <ReadAloud text={`${from?.name ?? "Someone"} says: ${n.text}`} size={2.8} />}
+                <button
+                  type="button"
+                  aria-label="Mark as read"
+                  onClick={() => {
+                    sfx.pop();
+                    markNoteSeen(n.id, member.id);
+                  }}
+                  className="tap shrink-0 rounded-full bg-white/90 px-3 py-1.5 text-[1.05rem] font-black text-ink"
+                >
+                  Got it ✓
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 }
 
@@ -294,7 +362,6 @@ function JobCard({ chore, member, onDone, dense }: { chore: ChoreView; member: M
   const p = pal(member.palId);
   return (
     <motion.div
-      layout
       className={cn(
         dense ? "relative flex min-h-[9.5rem] flex-col items-center justify-between gap-1 rounded-[1.5rem] p-3 text-center ring-1 ring-black/5 max-md:min-h-0 max-md:rounded-[1.5rem] max-md:p-3" : "relative flex min-h-[12.5rem] flex-col items-center justify-between gap-2 rounded-[1.8rem] p-4 text-center ring-1 ring-black/5 max-md:min-h-0 max-md:rounded-[1.5rem] max-md:p-3",
         chore.state === "done" && "bg-sage-tint",

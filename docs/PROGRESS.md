@@ -346,3 +346,22 @@ The printable habit worksheet as a game, from each kid's Me page
 - Unassigned PointPals chores (which PointPals gives to every kid) now show for
   the children too, except adult-tagged ones. Chores assigned to someone still
   only show for them.
+
+## 25 Nov 2026: jobs back to assigned-only, notes on Me, give a marble, home fit
+
+- Jobs: back to only the chores PointPals assigns to each person (the ⭐ on the
+  home faces is jobs still to do; showing every unassigned chore gave the kids
+  35 each). Job cards no longer use layout animation (cheaper with many jobs).
+- Me pages: a "new notes" card in the profile column (notes to them or to
+  everyone). "Got it ✓" or "Read all" marks them read, which clears the ✉️ on
+  their face on the home screen. The profile column scrolls on short screens.
+- Dinnertime reflection: after the habits, "Give a marble to anyone today?":
+  tap a person, pick or say why, and a 👍 marble (PointPals' "thumbs up.png")
+  goes in their PointPals jar (hub marbles if they aren't in PointPals). The
+  summary lists the marbles given. Stages scroll when taller than the screen.
+- Home: personal jars are a compact row (four fit at 1280×620 and 1900×900),
+  smaller family jar, notes have room for their tilt (2 lines each), more
+  space between faces so badges don't sit on the next face, and an empty
+  shopping list says "All stocked up".
+- Speed: List, Meals, Calendar, Notes and Reflection load in the background
+  after the home screen (main bundle 516KB → 423KB).

@@ -10,17 +10,24 @@ import { CelebrationLayer } from "@/components/Celebrate";
 import { ParentPinPrompt } from "@/components/PinPad";
 import Home from "@/pages/Home";
 import { KidZone, MePicker } from "@/pages/Me";
-import ShoppingList from "@/pages/List";
-import Meals from "@/pages/Meals";
-import Calendar from "@/pages/Calendar";
-import Notes from "@/pages/Notes";
-import Reflect from "@/pages/Reflect";
 import Habits from "@/pages/Habits";
 
 // Rarely-used screens load on demand so the bench screen starts faster.
 const Parent = lazy(() => import("@/pages/Parent"));
 const Guest = lazy(() => import("@/pages/Guest"));
 const Welcome = lazy(() => import("@/pages/Welcome"));
+// The other tabs load in the background once the home screen is up, so the
+// first screen is quick and switching tabs stays instant.
+const loadList = () => import("@/pages/List");
+const loadMeals = () => import("@/pages/Meals");
+const loadCalendar = () => import("@/pages/Calendar");
+const loadNotes = () => import("@/pages/Notes");
+const loadReflect = () => import("@/pages/Reflect");
+const ShoppingList = lazy(loadList);
+const Meals = lazy(loadMeals);
+const Calendar = lazy(loadCalendar);
+const Notes = lazy(loadNotes);
+const Reflect = lazy(loadReflect);
 
 export default function App() {
   const setupDone = useHub((s) => s.settings.setupDone);
@@ -28,6 +35,12 @@ export default function App() {
 
   // The family account keeps this screen's hub data in step with the others.
   useEffect(() => startAccount(), []);
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      for (const load of [loadList, loadMeals, loadCalendar, loadNotes, loadReflect]) void load().catch(() => {});
+    }, 2500);
+    return () => window.clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     // Guests never get family data, so the connectors don't even start.
