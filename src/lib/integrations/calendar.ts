@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { membersForTitle } from "../member-match";
 import { useHub } from "../store";
 import { sampleEvents } from "../sample";
-import { DAY_PART_TIMES, fromDateKey } from "../time";
+import { DAY_PART_TIMES, dateKey, fromDateKey } from "../time";
 import { nzCalendarEvents } from "../nz";
 import type { CalendarEvent, Member } from "../types";
 import { useRemote } from "../useRemote";
@@ -33,8 +33,13 @@ export function useCalendar() {
 
   const events = useMemo(() => {
     const base: CalendarEvent[] = remote.data?.events ?? (showSamples ? sampleEvents() : []);
+    // Keep showing a plan sent to Google until Google's own feed has it (the
+    // private iCal link can lag behind by a few hours).
+    const strip = (t: string) => t.replace(/[^\p{L}\p{N} ]/gu, "").trim().toLowerCase();
+    const inFeed = (p: (typeof kidPlans)[number]) =>
+      base.some((e) => dateKey(eventStart(e)) <= p.date && dateKey(eventEnd(e)) >= p.date && strip(e.title).includes(strip(p.title)));
     const planned: CalendarEvent[] = kidPlans
-      .filter((p) => !p.addedToCalendar)
+      .filter((p) => !p.addedToCalendar || (p.date >= dateKey(new Date()) && !inFeed(p)))
       .map((p) => {
         const start = fromDateKey(p.date);
         const [sh, sm] = (p.time ?? `${DAY_PART_TIMES[p.part].hour}:00`).split(":").map(Number);

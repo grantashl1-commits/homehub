@@ -168,7 +168,7 @@ export function Sheet({
                 exit={{ opacity: 0, y: "-46%", x: "-50%", scale: 0.96 }}
                 transition={{ type: "spring", stiffness: 380, damping: 32 }}
               >
-                <div className={cn("flex items-center justify-between gap-4 px-8 pt-6", hideTitle && "absolute right-0 top-0 z-10")}>
+                <div className={cn("flex items-center justify-between gap-4 px-8 pt-6 max-md:px-4 max-md:pt-4", hideTitle && "absolute right-0 top-0 z-10")}>
                   <Dialog.Title className={cn("font-display text-[2.6rem] font-black leading-none", hideTitle && "sr-only")}>
                     {title}
                   </Dialog.Title>
@@ -182,7 +182,7 @@ export function Sheet({
                     </button>
                   </Dialog.Close>
                 </div>
-                <div className="min-h-0 flex-1 overflow-y-auto px-8 pb-8 pt-5">{children}</div>
+                <div className="min-h-0 flex-1 overflow-y-auto px-8 pb-8 pt-5 max-md:px-4 max-md:pb-6">{children}</div>
               </motion.div>
             </Dialog.Content>
           </Dialog.Portal>

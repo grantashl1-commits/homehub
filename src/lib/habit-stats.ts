@@ -62,3 +62,24 @@ export function habitStats(habit: Habit, checkins: CheckIn[], today = new Date()
 
   return { streak, best: Math.max(best, streak), monthDone, monthDays, weeks };
 }
+
+/** Whether a habit is meant to happen on this day (school-days habits rest at the weekend). */
+export function habitDueOn(habit: Habit, day = new Date()): boolean {
+  if (habit.frequency.kind !== "weekdays") return true;
+  const dow = day.getDay();
+  return dow !== 0 && dow !== 6;
+}
+
+/** Ticks in the current Mon–Sun week, and the week's goal (7, 5, or N). */
+export function weekProgress(habit: Habit, checkins: CheckIn[], today = new Date()): { done: number; goal: number } {
+  const from = dateKey(startOfWeek(today));
+  const to = dateKey(addDays(startOfWeek(today), 6));
+  const days = new Set(checkins.filter((c) => c.habitId === habit.id && c.status === "done" && c.date >= from && c.date <= to).map((c) => c.date));
+  const f = habit.frequency;
+  const goal = f.kind === "daily" ? 7 : f.kind === "weekdays" ? 5 : f.times;
+  return { done: days.size, goal };
+}
+
+export function frequencyLabel(f: Habit["frequency"]): string {
+  return f.kind === "daily" ? "Every day" : f.kind === "weekdays" ? "School days" : `${f.times}× a week`;
+}

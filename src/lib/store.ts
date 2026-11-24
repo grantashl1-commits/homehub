@@ -92,7 +92,11 @@ export interface HubState {
   finishNote: (id: string) => void;
 
   setHabit: (memberId: string, habit: Omit<Habit, "id" | "memberId" | "startDate" | "active">) => void;
+  /** Adds a habit alongside the ones this person already has. */
+  addHabit: (memberId: string, habit: Omit<Habit, "id" | "memberId" | "startDate" | "active">) => void;
   updateHabit: (id: string, patch: Partial<Habit>) => void;
+  /** Stops a habit (its ticks are kept for the history). */
+  stopHabit: (id: string) => void;
   checkIn: (input: {
     habitId: string;
     memberId: string;
@@ -195,8 +199,14 @@ export const useHub = create<HubState>()(
             { ...habit, id: uid("habit"), memberId, startDate: dateKey(), active: true },
           ],
         })),
+      addHabit: (memberId, habit) =>
+        set((s) => ({
+          habits: [...s.habits, { ...habit, id: uid("habit"), memberId, startDate: dateKey(), active: true }],
+        })),
       updateHabit: (id, patch) =>
         set((s) => ({ habits: s.habits.map((h) => (h.id === id ? { ...h, ...patch } : h)) })),
+      stopHabit: (id) =>
+        set((s) => ({ habits: s.habits.map((h) => (h.id === id ? { ...h, active: false } : h)) })),
       checkIn: ({ habitId, memberId, status, noteText, noteMediaId, date }) =>
         set((s) => {
           const day = date ?? dateKey();
@@ -307,6 +317,14 @@ export const useHub = create<HubState>()(
 export function activeHabit(habits: Habit[], memberId: string): Habit | undefined {
   return habits.find((h) => h.memberId === memberId && h.active);
 }
+
+/** Everything this person is working on, oldest first. */
+export function activeHabits(habits: Habit[], memberId: string): Habit[] {
+  return habits.filter((h) => h.memberId === memberId && h.active);
+}
+
+/** Most habits one person can have going at once. */
+export const MAX_HABITS = 4;
 
 /** Consecutive days (ending today or yesterday) with a "done" check-in. */
 export function habitStreak(checkins: CheckIn[], habitId: string): number {

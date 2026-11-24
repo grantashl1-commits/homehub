@@ -1,18 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowLeft, Camera, Check, Mic, Plus } from "lucide-react";
+import { ArrowLeft, CalendarCheck2, Camera, Check, ImageIcon, Mic, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useHub } from "@/lib/store";
 import { bookingKind, eventEnd, eventMembers, eventStart, onDay, useCalendar } from "@/lib/integrations/calendar";
 import { KID_ACTIVITIES } from "@/lib/catalog";
 import { pal } from "@/lib/pals";
-import { DAY_PART_TIMES, addDays, dateKey, formatDayShort, formatTime, relativeDayLabel, startOfWeek } from "@/lib/time";
+import { DAY_PART_TIMES, addDays, dateKey, formatDayShort, formatTime, fromDateKey, relativeDayLabel, startOfWeek } from "@/lib/time";
+import { googleTemplateUrl } from "@/lib/google-calendar";
+import { useParentUnlocked } from "@/components/PinPad";
 import { sfx } from "@/lib/device";
 import { reoDay } from "@/lib/nz";
 import { resizeImage } from "@/lib/media";
 import { hubFetch } from "@/lib/integrations/hub-api";
-import type { CalendarEvent, DayPart, Member } from "@/lib/types";
+import type { CalendarEvent, DayPart, KidPlan, Member } from "@/lib/types";
 import { Avatar } from "@/components/Avatar";
 import { BigButton, Segmented, Sheet, SourceBadge } from "@/components/ui";
 import { VoiceRecorder } from "@/components/Voice";
@@ -258,47 +260,84 @@ function Agenda({ events, members, planMembers }: { events: CalendarEvent[]; mem
   );
 }
 
-type Step = "what" | "when" | "who" | "say";
+type Step = "what" | "custom" | "when" | "who" | "where" | "say" | "done";
+
+/** Pictures for an event that isn't one of the tiles. */
+const EVENT_EMOJI = ["📌", "🩺", "🦷", "✂️", "🚗", "✈️", "🎭", "🎬", "🎵", "🎨", "🏉", "🏀", "🎾", "🚴", "🥾", "⛺", "🎣", "🍽️", "☕", "🛒", "💼", "🐶", "⛪", "🎄", "💒", "🎓", "📚", "🔧"];
 
 function KidEventFlow({ open, who, onOpenChange, defaultDay }: { open: boolean; who?: string; onOpenChange: (o: boolean) => void; defaultDay: Date }) {
   const members = useHub((s) => s.members);
   const addKidPlan = useHub((s) => s.addKidPlan);
+  const grownUp = useParentUnlocked();
   const [step, setStep] = useState<Step>("what");
-  const [what, setWhat] = useState<(typeof KID_ACTIVITIES)[number] | null>(null);
+  const [what, setWhat] = useState<{ id: string; label: string; emoji: string } | null>(null);
+  const [customLabel, setCustomLabel] = useState("");
+  const [customEmoji, setCustomEmoji] = useState("📌");
   const [date, setDate] = useState(dateKey(defaultDay));
   const [part, setPart] = useState<DayPart | null>(null);
+  const [time, setTime] = useState("");
+  const [endTime, setEndTime] = useState("");
   const [people, setPeople] = useState<string[]>([]);
+  const [location, setLocation] = useState("");
+  const [notes, setNotes] = useState("");
+  const [saved, setSaved] = useState<KidPlan | null>(null);
 
   useEffect(() => {
     if (open) {
       setStep("what");
       setWhat(null);
+      setCustomLabel("");
+      setCustomEmoji("📌");
       setPart(null);
+      setTime("");
+      setEndTime("");
+      setLocation("");
+      setNotes("");
+      setSaved(null);
       setDate(dateKey(defaultDay));
       setPeople(who ? [who] : []);
     }
   }, [open, who, defaultDay]);
 
   const days = Array.from({ length: 7 }, (_, i) => addDays(new Date(), i));
+  const inWeek = days.some((d) => dateKey(d) === date);
   const finish = (voiceMediaId?: string) => {
-    if (!what || !part) return;
+    if (!what) return;
+    const hour = time ? Number(time.slice(0, 2)) : null;
+    const dayPart: DayPart = part ?? (hour === null ? "morning" : hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening");
     const names = members.filter((m) => people.includes(m.id)).map((m) => m.name);
-    addKidPlan({
+    const custom = what.id === "custom";
+    const plan = {
       what: what.id,
-      title: `${what.label}${names.length ? ` – ${names.join(" & ")}` : ""}`,
+      title: custom ? what.label : `${what.label}${names.length ? ` – ${names.join(" & ")}` : ""}`,
       emoji: what.emoji,
       date,
-      part,
+      part: dayPart,
+      time: time || undefined,
+      endTime: (time && endTime > time && endTime) || undefined,
+      location: location.trim() || undefined,
+      notes: notes.trim() || undefined,
       memberIds: people,
       voiceMediaId,
       createdBy: people[0] ?? "family",
-    });
-    onOpenChange(false);
+    };
+    addKidPlan(plan);
+    const added = useHub.getState().kidPlans.at(-1) ?? null;
+    setSaved(added);
+    setStep("done");
     celebrate({ title: "It's on the calendar!", emoji: what.emoji });
   };
 
-  const titles: Record<Step, string> = { what: "What is it?", when: "When is it?", who: "Who's going?", say: "Want to say anything?" };
-  const back: Partial<Record<Step, Step>> = { when: "what", who: "when", say: "who" };
+  const titles: Record<Step, string> = {
+    what: "What is it?",
+    custom: "What's it called?",
+    when: "When is it?",
+    who: "Who's going?",
+    where: "Where is it?",
+    say: "Want to say anything?",
+    done: "Added! 🎉",
+  };
+  const back: Partial<Record<Step, Step>> = { custom: "what", when: what?.id === "custom" ? "custom" : "what", who: "when", where: "who", say: "where" };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange} title={titles[step]} wide>
@@ -310,7 +349,7 @@ function KidEventFlow({ open, who, onOpenChange, defaultDay }: { open: boolean; 
       <AnimatePresence mode="wait">
         <motion.div key={step} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.2 }}>
           {step === "what" && (
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-4 gap-4 max-md:grid-cols-3 max-md:gap-2.5">
               {KID_ACTIVITIES.map((a) => (
                 <button
                   key={a.id}
@@ -320,30 +359,90 @@ function KidEventFlow({ open, who, onOpenChange, defaultDay }: { open: boolean; 
                     setWhat(a);
                     setStep("when");
                   }}
-                  className="tap flex aspect-[1.1] flex-col items-center justify-center gap-2 rounded-[1.8rem] bg-sky-tint ring-1 ring-black/5"
+                  className="tap flex aspect-[1.1] flex-col items-center justify-center gap-2 rounded-[1.8rem] bg-sky-tint p-1 ring-1 ring-black/5 max-md:gap-1 max-md:rounded-[1.4rem]"
                 >
-                  <span className="text-[4.6rem] leading-none">{a.emoji}</span>
-                  <span className="font-display text-[1.9rem] font-black">{a.label}</span>
+                  <span className="text-[4.6rem] leading-none max-md:text-[3.4rem]">{a.emoji}</span>
+                  <span className="text-center font-display text-[1.9rem] font-black leading-none max-md:text-[1.3rem]">{a.label}</span>
                 </button>
               ))}
+              <button
+                type="button"
+                onClick={() => {
+                  sfx.pop();
+                  setStep("custom");
+                }}
+                className="tap flex aspect-[1.1] flex-col items-center justify-center gap-2 rounded-[1.8rem] border-2 border-dashed border-sky bg-white p-1 max-md:gap-1 max-md:rounded-[1.4rem]"
+              >
+                <span className="text-[4.6rem] leading-none max-md:text-[3.4rem]">✏️</span>
+                <span className="text-center font-display text-[1.9rem] font-black leading-none max-md:text-[1.3rem]">Something else</span>
+              </button>
+            </div>
+          )}
+          {step === "custom" && (
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-3">
+                <span className="grid size-[5.6rem] shrink-0 place-items-center rounded-[1.6rem] bg-sky-tint text-[3.4rem]">{customEmoji}</span>
+                <input
+                  autoFocus
+                  value={customLabel}
+                  maxLength={60}
+                  onChange={(e) => setCustomLabel(e.target.value)}
+                  placeholder="e.g. Dentist, Leo's guitar lesson"
+                  className="h-[5rem] min-w-0 flex-1 rounded-[1.3rem] border-2 border-line bg-white px-4 text-[1.45rem] font-bold outline-none focus:border-sky"
+                />
+              </div>
+              <p className="text-[1.05rem] font-black uppercase tracking-[0.08em] text-ink-3">Pick a picture</p>
+              <div className="grid grid-cols-10 gap-2 max-md:grid-cols-7">
+                {EVENT_EMOJI.map((e) => (
+                  <button
+                    key={e}
+                    type="button"
+                    aria-pressed={customEmoji === e}
+                    onClick={() => (sfx.tap(), setCustomEmoji(e))}
+                    className={cn("tap grid aspect-square place-items-center rounded-[1.1rem] text-[2rem]", customEmoji === e ? "bg-sky-tint ring-[0.2rem] ring-sky" : "bg-white ring-1 ring-black/5")}
+                  >
+                    {e}
+                  </button>
+                ))}
+              </div>
+              <BigButton
+                tone="sky"
+                disabled={!customLabel.trim()}
+                onClick={() => {
+                  setWhat({ id: "custom", label: customLabel.trim(), emoji: customEmoji });
+                  setStep("when");
+                }}
+              >
+                Next
+              </BigButton>
             </div>
           )}
           {step === "when" && (
-            <div className="flex flex-col gap-6">
-              <div className="grid grid-cols-7 gap-2.5">
+            <div className="flex flex-col gap-5 max-md:gap-4">
+              <div className="grid grid-cols-7 gap-2.5 max-md:gap-1">
                 {days.map((d) => (
                   <button
                     key={d.toISOString()}
                     type="button"
                     onClick={() => (sfx.tap(), setDate(dateKey(d)))}
-                    className={cn("tap flex flex-col items-center rounded-[1.4rem] py-3 ring-1 ring-black/5", date === dateKey(d) ? "bg-sky text-white" : "bg-white")}
+                    className={cn("tap flex flex-col items-center rounded-[1.4rem] py-3 ring-1 ring-black/5 max-md:rounded-[1rem] max-md:py-2", date === dateKey(d) ? "bg-sky text-white" : "bg-white")}
                   >
-                    <span className="text-[1.15rem] font-black">{relativeDayLabel(d) === "Today" ? "Today" : relativeDayLabel(d) === "Tomorrow" ? "Tmrw" : formatDayShort(d)}</span>
-                    <span className="font-display text-[2.6rem] font-black leading-none">{d.getDate()}</span>
+                    <span className="text-[1.15rem] font-black max-md:text-[0.95rem]">{relativeDayLabel(d) === "Today" ? "Today" : relativeDayLabel(d) === "Tomorrow" ? "Tmrw" : formatDayShort(d)}</span>
+                    <span className="font-display text-[2.6rem] font-black leading-none max-md:text-[1.9rem]">{d.getDate()}</span>
                   </button>
                 ))}
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              <label className={cn("flex items-center gap-3 rounded-[1.4rem] px-4 py-2 ring-1 ring-black/5", inWeek ? "bg-white" : "bg-sky text-white")}>
+                <span className="text-[1.25rem] font-black">📅 Another date</span>
+                <input
+                  type="date"
+                  value={date}
+                  min={dateKey(new Date())}
+                  onChange={(e) => e.target.value && setDate(e.target.value)}
+                  className="h-[3.8rem] min-w-0 flex-1 rounded-[1rem] bg-white px-3 text-[1.3rem] font-bold text-ink outline-none"
+                />
+              </label>
+              <div className="grid grid-cols-3 gap-4 max-md:gap-2.5">
                 {(Object.keys(DAY_PART_TIMES) as DayPart[]).map((p) => (
                   <button
                     key={p}
@@ -351,20 +450,33 @@ function KidEventFlow({ open, who, onOpenChange, defaultDay }: { open: boolean; 
                     onClick={() => {
                       sfx.pop();
                       setPart(p);
+                      setTime("");
+                      setEndTime("");
                       setStep("who");
                     }}
-                    className={cn("tap flex h-[10rem] flex-col items-center justify-center gap-1 rounded-[1.8rem] ring-1 ring-black/5", part === p ? "bg-sun" : "bg-sun-tint")}
+                    className={cn("tap flex h-[10rem] flex-col items-center justify-center gap-1 rounded-[1.8rem] ring-1 ring-black/5 max-md:h-[7.6rem] max-md:rounded-[1.4rem]", part === p && !time ? "bg-sun" : "bg-sun-tint")}
                   >
-                    <span className="text-[3.6rem] leading-none">{DAY_PART_TIMES[p].emoji}</span>
-                    <span className="font-display text-[2rem] font-black">{DAY_PART_TIMES[p].label}</span>
+                    <span className="text-[3.6rem] leading-none max-md:text-[2.8rem]">{DAY_PART_TIMES[p].emoji}</span>
+                    <span className="font-display text-[2rem] font-black max-md:text-[1.4rem]">{DAY_PART_TIMES[p].label}</span>
                   </button>
                 ))}
+              </div>
+              <div className="flex flex-wrap items-center gap-3 rounded-[1.6rem] bg-white p-3 ring-1 ring-black/5">
+                <span className="text-[1.25rem] font-black">⏰ Or a set time</span>
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <input type="time" value={time} onChange={(e) => (setTime(e.target.value), setPart(null))} aria-label="Starts" className="h-[4rem] min-w-0 flex-1 rounded-[1rem] border-2 border-line bg-white px-2 text-[1.3rem] font-bold outline-none focus:border-sky" />
+                  <span className="font-black text-ink-3">to</span>
+                  <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} aria-label="Ends" className="h-[4rem] min-w-0 flex-1 rounded-[1rem] border-2 border-line bg-white px-2 text-[1.3rem] font-bold outline-none focus:border-sky" />
+                </div>
+                <BigButton tone="sky" size="md" disabled={!time} onClick={() => setStep("who")}>
+                  Next
+                </BigButton>
               </div>
             </div>
           )}
           {step === "who" && (
             <div className="flex flex-col gap-5">
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-4 gap-4 max-md:gap-2">
                 {members.map((m) => {
                   const on = people.includes(m.id);
                   return (
@@ -375,29 +487,86 @@ function KidEventFlow({ open, who, onOpenChange, defaultDay }: { open: boolean; 
                         sfx.pop();
                         setPeople((p) => (on ? p.filter((x) => x !== m.id) : [...p, m.id]));
                       }}
-                      className={cn("tap flex flex-col items-center gap-2 rounded-[1.8rem] bg-white py-4 ring-1 ring-black/5", on && "ring-[0.35rem] ring-sky")}
+                      className={cn("tap flex flex-col items-center gap-2 rounded-[1.8rem] bg-white py-4 ring-1 ring-black/5 max-md:rounded-[1.4rem] max-md:py-2.5", on && "ring-[0.35rem] ring-sky")}
                     >
                       <Avatar member={m} size={6} />
-                      <span className="font-display text-[1.9rem] font-black">{m.name}</span>
+                      <span className="font-display text-[1.9rem] font-black max-md:text-[1.3rem]">{m.name}</span>
                     </button>
                   );
                 })}
               </div>
               <div className="flex justify-end">
-                <BigButton tone="sky" disabled={!people.length} onClick={() => setStep("say")}>
+                <BigButton tone="sky" disabled={!people.length} onClick={() => setStep("where")}>
                   Next
+                </BigButton>
+              </div>
+            </div>
+          )}
+          {step === "where" && (
+            <div className="flex flex-col gap-4">
+              <input
+                autoFocus
+                value={location}
+                maxLength={120}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="📍 Place or address (optional)"
+                className="h-[5rem] rounded-[1.3rem] border-2 border-line bg-white px-4 text-[1.45rem] font-bold outline-none focus:border-sky"
+              />
+              <textarea
+                value={notes}
+                maxLength={300}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="📝 Anything to bring or remember? (optional)"
+                className="h-[8rem] resize-none rounded-[1.3rem] border-2 border-line bg-white p-4 text-[1.35rem] font-bold outline-none focus:border-sky"
+              />
+              <div className="flex justify-end">
+                {/* Grown-ups go straight to saving; kids can leave a voice message for Mum and Dad. */}
+                <BigButton tone="sky" onClick={() => (grownUp ? finish() : setStep("say"))}>
+                  {grownUp ? "Add it ✓" : location.trim() || notes.trim() ? "Next" : "Skip"}
                 </BigButton>
               </div>
             </div>
           )}
           {step === "say" && (
             <div className="flex flex-col items-center gap-4">
-              <p className="flex items-center gap-2 text-[1.4rem] font-bold text-ink-2">
-                <Mic className="size-6" /> Tell Mum and Dad about it (you can skip this)
+              <p className="flex items-center gap-2 text-center text-[1.4rem] font-bold text-ink-2">
+                <Mic className="size-6 shrink-0" /> Tell Mum and Dad about it (you can skip this)
               </p>
               <VoiceRecorder color="var(--sky)" onSaved={(id) => finish(id)} />
               <BigButton tone="white" onClick={() => finish()}>
                 Skip, just add it ✓
+              </BigButton>
+            </div>
+          )}
+          {step === "done" && saved && (
+            <div className="flex flex-col items-center gap-4 text-center">
+              <span className="text-[5rem] leading-none">{saved.emoji}</span>
+              <p className="font-display text-[2.2rem] font-black leading-tight">{saved.title}</p>
+              <p className="text-[1.3rem] font-bold text-ink-2">
+                {relativeDayLabel(fromDateKey(saved.date))} · {saved.time ? `${saved.time}${saved.endTime ? `–${saved.endTime}` : ""}` : DAY_PART_TIMES[saved.part].label}
+                {saved.location && ` · 📍 ${saved.location}`}
+              </p>
+              {grownUp ? (
+                <>
+                  <a
+                    href={googleTemplateUrl(saved)}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={() => {
+                      useHub.getState().markPlanAdded(saved.id);
+                      onOpenChange(false);
+                    }}
+                    className="tap flex min-h-[5.4rem] w-full items-center justify-center gap-3 rounded-[1.6rem] bg-sky px-6 text-[1.5rem] font-black text-white shadow-[var(--shadow-soft)]"
+                  >
+                    <CalendarCheck2 className="size-7" /> Add to Google Calendar
+                  </a>
+                  <p className="text-[1.1rem] font-bold text-ink-3">Opens Google with the time, place and notes filled in. Tap Save there.</p>
+                </>
+              ) : (
+                <p className="text-[1.3rem] font-bold text-ink-2">It's on the hub now. Mum or Dad will pop it in Google Calendar.</p>
+              )}
+              <BigButton tone="white" onClick={() => onOpenChange(false)}>
+                Done
               </BigButton>
             </div>
           )}
@@ -479,7 +648,7 @@ function SnapSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (o: bo
       });
     }
     onOpenChange(false);
-    celebrate({ title: `${keep.length} added!`, subtitle: "Parents can send them to Google Calendar", emoji: "📌" });
+    celebrate({ title: `${keep.length} added!`, subtitle: "Send them to Google from Parent → Approvals", emoji: "📌" });
   };
 
   return (
@@ -489,10 +658,17 @@ function SnapSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (o: bo
           <p className="max-w-[40rem] text-[1.45rem] font-bold text-ink-2">
             Take a photo of a school newsletter, party invite or sports draw. Home Hub reads the dates and adds them for you.
           </p>
-          <label className="tap flex min-h-[6rem] cursor-pointer items-center gap-3 rounded-[2rem] bg-coral px-10 text-[1.9rem] font-black text-white shadow-[var(--shadow-glow)]">
-            <Camera className="size-10" /> Take or choose a photo
-            <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => e.target.files?.[0] && void read(e.target.files[0])} />
-          </label>
+          <div className="flex w-full max-w-[44rem] flex-col gap-3">
+            <label className="tap flex min-h-[5.6rem] cursor-pointer items-center justify-center gap-3 rounded-[1.8rem] bg-coral px-6 text-[1.7rem] font-black text-white shadow-[var(--shadow-glow)]">
+              <Camera className="size-8" /> Take a photo
+              <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => e.target.files?.[0] && void read(e.target.files[0])} />
+            </label>
+            {/* No capture attribute, so phones offer the photo library and files (screenshots, emailed notices). */}
+            <label className="tap flex min-h-[5.6rem] cursor-pointer items-center justify-center gap-3 rounded-[1.8rem] bg-white px-6 text-[1.7rem] font-black text-ink shadow-[var(--shadow-soft)] ring-1 ring-black/5">
+              <ImageIcon className="size-8 text-coral" /> Choose from photos
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && void read(e.target.files[0])} />
+            </label>
+          </div>
         </div>
       )}
       {state === "reading" && (

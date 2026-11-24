@@ -38,6 +38,7 @@ import { AudioPlayer } from "@/components/Voice";
 import { celebrate } from "@/components/Celebrate";
 import { cn } from "@/lib/utils";
 import { useAccount } from "@/lib/account";
+import { googleTemplateUrl } from "@/lib/google-calendar";
 import { FamilyAccountPanel, FamilyConnections } from "@/components/FamilyAccount";
 
 const NO_KIDS: import("@/lib/integrations/pointpals").PPKid[] = [];
@@ -259,26 +260,6 @@ function Approvals() {
   );
 }
 
-function googleTemplateUrl(p: KidPlan): string {
-  const start = fromDateKey(p.date);
-  const [h, m] = (p.time ?? `${DAY_PART_TIMES[p.part].hour}:00`).split(":").map(Number);
-  start.setHours(h, m || 0, 0, 0);
-  const end = new Date(start.getTime() + 60 * 60000);
-  if (p.endTime) {
-    const [eh, em] = p.endTime.split(":").map(Number);
-    end.setTime(new Date(start).setHours(eh, em || 0, 0, 0));
-  }
-  const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
-  const q = new URLSearchParams({
-    action: "TEMPLATE",
-    text: `${p.emoji} ${p.title}`,
-    dates: `${fmt(start)}/${fmt(end)}`,
-    details: p.createdBy === "snap" ? "Read off a notice by Home Hub" : "Added by the kids on Home Hub",
-    ...(p.location ? { location: p.location } : {}),
-  });
-  return `https://calendar.google.com/calendar/render?${q.toString()}`;
-}
-
 function KidPlanRow({ plan, members }: { plan: KidPlan; members: Member[] }) {
   const ms = members.filter((m) => plan.memberIds.includes(m.id));
   return (
@@ -288,8 +269,9 @@ function KidPlanRow({ plan, members }: { plan: KidPlan; members: Member[] }) {
         <p className="text-[1.45rem] font-extrabold">{plan.title}</p>
         <p className="text-[1.15rem] font-bold text-ink-2">
           {relativeDayLabel(fromDateKey(plan.date))} {plan.time ?? DAY_PART_TIMES[plan.part].label.toLowerCase()} · {formatDateShort(fromDateKey(plan.date))}
-          {plan.location && ` · ${plan.location}`}
+          {plan.location && ` · 📍 ${plan.location}`}
         </p>
+        {plan.notes && <p className="text-[1.1rem] font-bold text-ink-2">📝 {plan.notes}</p>}
         {plan.voiceMediaId && <AudioPlayer mediaId={plan.voiceMediaId} color="var(--sky)" className="mt-2" />}
       </div>
       <div className="flex -space-x-2">

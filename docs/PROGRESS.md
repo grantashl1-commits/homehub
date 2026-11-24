@@ -237,3 +237,26 @@ wall layouts are unchanged.
   It now falls back to reading the page through Jina Reader, the same
   fallback SIGNAL's own importer uses, and DeepSeek picks out the recipe and
   its main photo from that text.
+
+## 24 Nov 2026: your own habits, phone Me and Reflect, calendar details
+
+- Habits: each person can have up to 4 habits at once. "+ Add" opens a sheet
+  with "Make your own" (name, picture, how often: every day, school days, or
+  1 to 6 times a week) plus the kids', family and SIGNAL libraries. Cards show
+  this week's ticks and a Tick button; the detail has streaks, a four-week tick
+  chart, this month, and Edit / Stop (stopped habits keep their history).
+  Desktop: people rail | cards | detail. Phone: people strip, cards that open
+  in place. School-days habits show "Rest day" at the weekend.
+- Dinnertime reflection asks about each habit in turn ("Habit 2 of 3"),
+  skips habits resting today, and lays out as a scrolling page on phones
+  (the intro overlapped the header before).
+- Me on phones: profile row on top, then jobs two-up, then the three buttons.
+- Calendar add: "Something else" with your own name and picture; any date;
+  a set start and end time; a place and notes. Grown-ups get "Add to Google
+  Calendar" at the end, which opens Google with the time, place and notes
+  filled in. The hub keeps showing the event until Google's feed has it.
+  This is one-way: the hub reads Google via the private iCal link (read-only).
+  True two-way sync needs Google sign-in with calendar access (not built).
+- Snap a notice: separate "Take a photo" and "Choose from photos" buttons
+  (the camera-only input hid the photo library on Android). Snap reads with
+  Claude vision (ANTHROPIC_API_KEY); DeepSeek's API can't read images.
