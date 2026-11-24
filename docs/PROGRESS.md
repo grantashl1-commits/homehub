@@ -312,3 +312,24 @@ The printable habit worksheet as a game, from each kid's Me page
 - Videos play to the end before the next slide (loop when it's the only one);
   photos stay 9 s. A file the screen can't play (e.g. an iPhone .mov in
   Chrome) is skipped and named in a small note instead of a black screen.
+
+## 24 Nov 2026: 11" tablet layout, habit visuals on the habits page
+
+- On an 11" Lenovo Chromebook tablet in Chrome (about 1280×620), the Me page's
+  habits card squeezed "My jobs today" to its title and pushed the buttons
+  under the nav. Habit tiles now sit in one row (auto-fit), the jobs card keeps
+  room for a row of jobs, and that column scrolls on short screens.
+- The habits page cards use the same Monday–Sunday dots with day letters, and
+  turn gold with "🏆 Goal!" when the week's goal is met.
+- The add-habit library tabs start with "Not here? Write your own", which
+  leads to the name, emoji and ✨ Make a picture.
+
+## 24 Nov 2026: Me page tidy, add habits from the Me page
+
+- Removed the Add to list / Add event / Write a note / Habit Adventure buttons
+  from Me pages (the bottom nav covers list, calendar and notes), and the
+  Habit Adventure game itself (the family has finished with it).
+- "My habits this week" has "+ Add habit", opening the same sheet as the
+  habits page. It now opens on Make your own for everyone: name, how often,
+  emoji or ✨ Make a picture (PointPals' generator), and the habit syncs to
+  PointPals as that child's skill.

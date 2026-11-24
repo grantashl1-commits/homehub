@@ -21,7 +21,6 @@ import Habits from "@/pages/Habits";
 const Parent = lazy(() => import("@/pages/Parent"));
 const Guest = lazy(() => import("@/pages/Guest"));
 const Welcome = lazy(() => import("@/pages/Welcome"));
-const HabitAdventure = lazy(() => import("@/pages/HabitAdventure"));
 
 export default function App() {
   const setupDone = useHub((s) => s.settings.setupDone);
@@ -49,7 +48,6 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/me" element={<MePicker />} />
             <Route path="/me/:id" element={<KidZone />} />
-            <Route path="/me/:id/adventure" element={<HabitAdventure />} />
             <Route path="/list" element={<ShoppingList />} />
             <Route path="/meals" element={<Meals />} />
             <Route path="/calendar" element={<Calendar />} />
