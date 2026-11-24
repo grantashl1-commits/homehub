@@ -128,6 +128,8 @@ export function useShoppingList() {
   const add = useCallback(
     async (name: string, opts: { category?: string; by?: string; recipe?: string } = {}) => {
       const category = opts.category ?? categorise(name);
+      // Things added by hand (not a recipe's ingredients) build up "Most often added".
+      if (!opts.recipe) useHub.getState().countListAdd(name, category);
       if (!connected) return addLocalItem(name, category, opts.by, opts.recipe);
       setOptimistic([
         { id: `tmp-${name}`, name, category, checked: false, addedBy: opts.by, createdAt: Date.now() },

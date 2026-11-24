@@ -365,3 +365,18 @@ The printable habit worksheet as a game, from each kid's Me page
   shopping list says "All stocked up".
 - Speed: List, Meals, Calendar, Notes and Reflection load in the background
   after the home screen (main bundle 516KB → 423KB).
+
+## 25 Nov 2026: badges beside faces, list regulars, calendar people, shared voice notes
+
+- Home: the ✉️ and ⭐ badges sit beside each face instead of on the photo.
+- Shopping list: no emoji on items, headings or the home card. The preset
+  "Tap to add" pictures are gone; "Most often added" shows the family's own
+  regulars (anything put on the list by hand at least twice, most first),
+  counted in `listCounts` and synced with the family.
+- Calendar people: an emoji only matches someone when it stands alone, so
+  👩‍🦳👨‍🦳 Grandma + Grandad no longer lands on Mum and Dad (stays Family).
+  A girl/boy/child emoji no child has claimed goes to all the children.
+- Voice notes, doodles and photos are copied to the family's private storage
+  (bucket `hub-media`, migration 20261125000000_family_media.sql), so a note
+  recorded on the tablet plays on the desktop. Each screen shares its older
+  recordings once when signed in. Needs the migration run on the hub project.

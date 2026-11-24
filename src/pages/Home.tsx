@@ -13,7 +13,7 @@ import { notionAction, useNotion } from "@/lib/integrations/notion";
 import { toast } from "sonner";
 import { recipeImage } from "@/lib/integrations/signal";
 import { describeWeather, useWeather } from "@/lib/integrations/weather";
-import { groceryEmoji, noteColor } from "@/lib/catalog";
+import { noteColor } from "@/lib/catalog";
 import { pal } from "@/lib/pals";
 import type { CalendarEvent, Member } from "@/lib/types";
 import { Avatar } from "@/components/Avatar";
@@ -101,7 +101,7 @@ function Hero() {
 
       <div className="relative mt-4">
         <p className="mb-2.5 text-[1.05rem] font-black uppercase tracking-[0.1em] opacity-60">Who's here?</p>
-        <div className="flex flex-wrap gap-x-5 gap-y-2 pt-1.5">
+        <div className="flex flex-wrap gap-x-3 gap-y-2 pt-1">
           {members.slice(0, 6).map((m) => (
             <WhoButton key={m.id} member={m} />
           ))}
@@ -265,19 +265,25 @@ function WhoButton({ member }: { member: Member }) {
         sfx.pop();
         navigate(`/me/${member.id}`);
       }}
-      className="tap relative rounded-full"
+      className="tap relative rounded-[1.2rem]"
       aria-label={`${member.name}'s zone${waiting ? ` — ${waiting}` : ""}`}
       title={waiting || `${member.name}'s zone`}
     >
-      <Avatar member={member} size={3.7} ring />
-      <span className="mt-1 block max-w-[6.5rem] truncate rounded-full bg-white/80 px-2 text-center text-[1.1rem] font-extrabold text-ink">{member.name}</span>
-      {/* ✉️ new notes for them, ⭐ PointPals jobs still to do. */}
-      <span className="absolute -right-2.5 -top-2 flex flex-col items-end gap-0.5">
-        {unread > 0 && (
-          <span className="flex h-[1.8rem] items-center gap-0.5 rounded-full bg-coral px-1.5 text-[0.95rem] font-black text-white ring-2 ring-white">✉️{unread}</span>
-        )}
-        {todo > 0 && (
-          <span className="flex h-[1.8rem] items-center gap-0.5 rounded-full bg-ink px-1.5 text-[0.95rem] font-black text-white ring-2 ring-white">⭐{todo}</span>
+      <span className="flex items-start gap-1">
+        <span className="flex flex-col items-center">
+          <Avatar member={member} size={3.7} ring />
+          <span className="mt-1 block max-w-[6.5rem] truncate rounded-full bg-white/80 px-2 text-center text-[1.1rem] font-extrabold text-ink">{member.name}</span>
+        </span>
+        {/* Beside the face, not on it: ✉️ new notes for them, ⭐ PointPals jobs still to do. */}
+        {(unread > 0 || todo > 0) && (
+          <span className="flex flex-col items-start gap-1 pt-0.5">
+            {unread > 0 && (
+              <span className="flex h-[1.8rem] items-center gap-0.5 rounded-full bg-coral px-1.5 text-[0.95rem] font-black text-white shadow-sm">✉️{unread}</span>
+            )}
+            {todo > 0 && (
+              <span className="flex h-[1.8rem] items-center gap-0.5 rounded-full bg-ink px-1.5 text-[0.95rem] font-black text-white shadow-sm">⭐{todo}</span>
+            )}
+          </span>
         )}
       </span>
     </button>
@@ -432,7 +438,7 @@ function ListTile() {
       <div className="mt-3 flex min-h-0 flex-1 flex-wrap content-start gap-2 overflow-hidden">
         {todo.slice(0, 18).map((i) => (
           <span key={i.id} className="rounded-full bg-white px-3 py-1 text-[1.15rem] font-extrabold">
-            {groceryEmoji(i.name)} {i.name}
+            {i.name}
           </span>
         ))}
       </div>

@@ -50,3 +50,31 @@ describe("membersForTitle", () => {
     expect(membersForTitle("Family dinner at Nana's", family)).toEqual([]);
   });
 });
+
+describe("grandparents and joined emoji", () => {
+  const parents: Member[] = [
+    { id: "matt", name: "Matt", role: "parent", palId: "ridge", keywords: "👨" },
+    { id: "ash", name: "Ash", role: "parent", palId: "marlow", keywords: "👩" },
+    { id: "leo", name: "Leo", role: "child", palId: "pip", keywords: "👦" },
+    { id: "ruby", name: "Ruby", role: "child", palId: "sunny", keywords: "👧" },
+  ];
+
+  it("keeps Grandma + Grandad (👩‍🦳👨‍🦳) in Family, not on Mum and Dad", () => {
+    expect(membersForTitle("👩‍🦳👨‍🦳🐈 Grandma + Grandad Visiting", parents)).toEqual([]);
+    expect(membersForTitle("👵🏼👴🏼 Grandparents", parents)).toEqual([]);
+  });
+
+  it("still gives a lone parent emoji to that parent", () => {
+    expect(membersForTitle("🎾👩 Tennis", parents)).toEqual(["ash"]);
+  });
+
+  it("gives Athletics with a girl and a boy to Ruby and Leo", () => {
+    expect(membersForTitle("🏃🏁👧🏼👦🏼 Athletics", parents)).toEqual(["leo", "ruby"]);
+  });
+
+  it("gives a kid emoji to the children when they haven't set their own emoji", () => {
+    const plainKids = parents.map((m) => (m.role === "child" ? { ...m, keywords: undefined } : m));
+    expect(membersForTitle("🏁👧👦 Athletics", plainKids)).toEqual(["leo", "ruby"]);
+    expect(membersForTitle("🧒 Swimming", plainKids)).toEqual(["leo", "ruby"]);
+  });
+});

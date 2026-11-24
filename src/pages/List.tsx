@@ -5,7 +5,7 @@ import { Check, ChevronDown, Mic, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { useHub } from "@/lib/store";
 import { useShoppingList } from "@/lib/hooks";
-import { CATEGORIES, QUICK_GROCERIES, categoryMeta, groceryEmoji } from "@/lib/catalog";
+import { CATEGORIES } from "@/lib/catalog";
 import { canListen, listenOnce, sfx } from "@/lib/device";
 import type { ListItem, Member } from "@/lib/types";
 import { Avatar } from "@/components/Avatar";
@@ -65,13 +65,13 @@ export default function ShoppingList() {
           <SourceBadge source={source === "signal" ? "signal" : "local"} />
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto pr-1 no-scrollbar max-md:overflow-visible">
-          {todo.length === 0 && done.length === 0 && <EmptyState emoji="🧺" title="Nothing to buy!" body="Tap a picture to add something." />}
+          {todo.length === 0 && done.length === 0 && <EmptyState emoji="🧺" title="Nothing to buy!" body="Type or say something to add it." />}
           {todo.length === 0 && done.length > 0 && <EmptyState emoji="🎉" title="All in the trolley!" />}
           <AnimatePresence initial={false}>
             {grouped.map((g) => (
               <motion.div key={g.id} layout className="mb-4">
                 <p className="mb-2 flex items-center gap-2 text-[1.15rem] font-black uppercase tracking-[0.08em]" style={{ color: g.ink }}>
-                  <span className="text-[1.5rem]">{g.emoji}</span> {g.label}
+                  {g.label}
                 </p>
                 <div className="flex flex-col gap-2">
                   {g.items.map((i) => (
@@ -153,31 +153,7 @@ export default function ShoppingList() {
             <Plus className="size-9" strokeWidth={3} />
           </button>
         </form>
-        <div className="card min-h-0 flex-1 overflow-y-auto p-4 no-scrollbar">
-          <p className="mb-3 px-1 text-[1.15rem] font-black uppercase tracking-[0.08em] text-ink-3">Tap to add</p>
-          <div className="grid grid-cols-3 gap-3 lg:grid-cols-4">
-            {QUICK_GROCERIES.map((g) => {
-              const on = todo.some((i) => i.name.toLowerCase() === g.name.toLowerCase());
-              return (
-                <motion.button
-                  key={g.name}
-                  type="button"
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => !on && void addItem(g.name, g.category)}
-                  className={cn(
-                    "relative flex aspect-square flex-col items-center justify-center gap-1 rounded-[1.4rem] ring-1 ring-black/5",
-                    on && "opacity-50",
-                  )}
-                  style={{ background: categoryMeta(g.category).tint }}
-                >
-                  <span className="text-[3rem] leading-none">{g.emoji}</span>
-                  <span className="text-[1.1rem] font-extrabold leading-tight">{g.name}</span>
-                  {on && <Check className="absolute right-2 top-2 size-6 text-sage-ink" strokeWidth={3.5} />}
-                </motion.button>
-              );
-            })}
-          </div>
-        </div>
+        <OftenAdded onAdd={(name, category) => void addItem(name, category)} onList={todo.map((i) => i.name.toLowerCase())} />
       </section>
     </div>
   );
@@ -204,7 +180,6 @@ function Row({ item, by, onToggle, onRemove }: { item: ListItem; by?: Member; on
         <span className={cn("grid size-[3.4rem] shrink-0 place-items-center rounded-full border-[0.22rem] transition-colors", item.checked ? "border-sage bg-sage text-white" : "border-ink/25 bg-white")}>
           {item.checked && <Check className="size-6" strokeWidth={4} />}
         </span>
-        <span className="text-[2rem] leading-none">{groceryEmoji(item.name)}</span>
         <span className="min-w-0 flex-1">
           <span className={cn("block truncate text-[1.6rem] font-extrabold", item.checked && "line-through decoration-[0.2rem]")}>{item.name}</span>
           {item.recipe && <span className="block truncate text-[1.1rem] font-bold text-ink-3">for {item.recipe}</span>}
@@ -217,3 +192,46 @@ function Row({ item, by, onToggle, onRemove }: { item: ListItem; by?: Member; on
     </motion.div>
   );
 }
+
+/**
+ * The family's own regulars: things put on the list by hand at least twice,
+ * most often first. Empty until a pattern shows up.
+ */
+function OftenAdded({ onAdd, onList }: { onAdd: (name: string, category: string) => void; onList: string[] }) {
+  const counts = useHub((s) => s.listCounts);
+  const regulars = useMemo(
+    () =>
+      Object.entries(counts ?? {})
+        .filter(([, c]) => c.n >= 2)
+        .sort((a, b) => b[1].n - a[1].n || b[1].last - a[1].last)
+        .slice(0, 16),
+    [counts],
+  );
+  return (
+    <div className="card min-h-0 flex-1 overflow-y-auto p-4 no-scrollbar">
+      <p className="mb-3 px-1 text-[1.15rem] font-black uppercase tracking-[0.08em] text-ink-3">Most often added</p>
+      {regulars.length === 0 ? (
+        <p className="px-1 text-[1.3rem] font-bold text-ink-2">The things you add most will show up here, ready to tap, once the hub has seen you add them a couple of times.</p>
+      ) : (
+        <div className="flex flex-wrap gap-2.5">
+          {regulars.map(([key, c]) => {
+            const on = onList.includes(key);
+            return (
+              <button
+                key={key}
+                type="button"
+                disabled={on}
+                onClick={() => onAdd(c.name, c.category)}
+                className={cn("tap flex min-h-[4.4rem] items-center gap-2 rounded-full bg-paper px-5 text-[1.35rem] font-extrabold ring-1 ring-black/5", on && "opacity-50")}
+              >
+                {on ? <Check className="size-5 text-sage-ink" strokeWidth={3.5} /> : <Plus className="size-5 text-ink-3" strokeWidth={3} />}
+                {c.name}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+

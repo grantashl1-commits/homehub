@@ -73,6 +73,8 @@ export interface HubState {
   marbles: Record<string, number>;
   familyJar: number;
   localList: ListItem[];
+  /** How often each thing has been put on the shopping list by hand (lower-case name → count). */
+  listCounts: Record<string, { name: string; category: string; n: number; last: number }>;
   kidPlans: KidPlan[];
   mealHearts: Record<string, string[]>;
   localDinners: Record<string, string>;
@@ -112,6 +114,7 @@ export interface HubState {
   addLocalMarbles: (memberId: string, points: number) => void;
 
   addLocalItem: (name: string, category: string, addedBy?: string, recipe?: string) => void;
+  countListAdd: (name: string, category: string) => void;
   toggleLocalItem: (id: string) => void;
   removeLocalItem: (id: string) => void;
   clearLocalChecked: () => void;
@@ -144,6 +147,7 @@ const initialData = () => ({
   marbles: { kid1: 7, kid2: 5 } as Record<string, number>,
   familyJar: 34,
   localList: SAMPLE_LIST(),
+  listCounts: {} as HubState["listCounts"],
   kidPlans: [] as KidPlan[],
   mealHearts: {} as Record<string, string[]>,
   localDinners: {} as Record<string, string>,
@@ -240,6 +244,13 @@ export const useHub = create<HubState>()(
           familyJar: Math.max(0, s.familyJar + points),
         })),
 
+      countListAdd: (name, category) =>
+        set((s) => {
+          const key = name.trim().toLowerCase();
+          if (!key) return {};
+          const prev = (s.listCounts ?? {})[key];
+          return { listCounts: { ...(s.listCounts ?? {}), [key]: { name: name.trim(), category, n: (prev?.n ?? 0) + 1, last: Date.now() } } };
+        }),
       addLocalItem: (name, category, addedBy, recipe) =>
         set((s) => {
           const exists = s.localList.find(

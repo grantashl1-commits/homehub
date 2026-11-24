@@ -33,10 +33,40 @@ export function memberMatches(m: Member, title: string): boolean {
   return (m.keywords ?? "")
     .split(",")
     .map((k) => plain(k).trim())
-    .some((k) => k.length > 0 && (k.length > 1 || !/[a-z0-9]/.test(k)) && t.includes(k));
+    .some((k) => k.length > 0 && (k.length > 1 || !/[a-z0-9]/.test(k)) && containsWord(t, k));
 }
 
-/** Member ids this event belongs to. Nobody matching means it stays in Family. */
+const ZWJ = "\u200D";
+
+/**
+ * True when `k` appears in `t`. An emoji only counts on its own, not as part
+ * of a bigger joined emoji: 👩 is in 👩‍🦳 (an older woman, i.e. Grandma) and
+ * in 👨‍👩‍👧 (a family), and neither of those is Mum.
+ */
+export function containsWord(t: string, k: string): boolean {
+  if (/[a-z0-9]/.test(k)) return t.includes(k);
+  for (let i = t.indexOf(k); i >= 0; i = t.indexOf(k, i + 1)) {
+    const before = t.slice(0, i);
+    const after = t.slice(i + k.length);
+    if (!before.endsWith(ZWJ) && !after.startsWith(ZWJ)) return true;
+  }
+  return false;
+}
+
+/** A kid emoji standing on its own: girl, boy or child. */
+const KID_EMOJI = ["👧", "👦", "🧒"];
+
+/**
+ * Member ids this event belongs to. Nobody matching means it stays in Family.
+ * A kid emoji that no child has claimed as their own still means the kids,
+ * so it goes to all the children rather than to Family.
+ */
 export function membersForTitle(title: string, members: Member[]): string[] {
-  return members.filter((m) => memberMatches(m, title)).map((m) => m.id);
+  const ids = members.filter((m) => memberMatches(m, title)).map((m) => m.id);
+  const kids = members.filter((m) => m.role === "child");
+  const t = plain(title);
+  if (kids.length && !kids.some((k) => ids.includes(k.id)) && KID_EMOJI.some((e) => containsWord(t, e))) {
+    return [...ids, ...kids.map((k) => k.id)];
+  }
+  return ids;
 }
