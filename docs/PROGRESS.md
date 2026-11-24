@@ -333,3 +333,16 @@ The printable habit worksheet as a game, from each kid's Me page
   habits page. It now opens on Make your own for everyone: name, how often,
   emoji or ✨ Make a picture (PointPals' generator), and the habit syncs to
   PointPals as that child's skill.
+
+## 24 Nov 2026: 0-point chores and new PointPals chores
+
+- PointPals chores set to 0 points (PointPals calls them habits: logged as
+  done, no marble) now show as done on the hub. Before, the hub only counted
+  awards above 0, so they never ticked off.
+- Kids tapping "I did it!" on a 0-point chore get the celebration and it's
+  logged in PointPals straight away; no approval, since there's no marble.
+  0-point cards don't show "+0".
+- New and changed PointPals chores arrive live (realtime on the chores table).
+- Unassigned PointPals chores (which PointPals gives to every kid) now show for
+  the children too, except adult-tagged ones. Chores assigned to someone still
+  only show for them.

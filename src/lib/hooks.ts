@@ -49,8 +49,13 @@ export function useChoresFor(member: Member | undefined): { chores: ChoreView[];
     if (!member) return { chores: [], source: "local" as const };
     const linked = !!(pp.userId && member.pointpalsKidId);
     const base: Chore[] = linked
-      ? // Only the jobs PointPals assigns to this person (an unassigned chore is for nobody).
-        pp.chores.filter((c) => !!c.memberIds?.includes(member.pointpalsKidId!))
+      ? // The jobs PointPals assigns to this person. Unassigned chores are for every
+        // kid in PointPals, so children get those too (but not the adult-tagged ones).
+        pp.chores.filter((c) =>
+          c.memberIds?.length
+            ? c.memberIds.includes(member.pointpalsKidId!)
+            : member.role === "child" && !/^adult-/.test(c.icon),
+        )
       : localChores.filter((c) => !c.memberIds || c.memberIds.includes(member.id));
     const mine = claims.filter((c) => c.memberId === member.id && c.date === today);
     return {

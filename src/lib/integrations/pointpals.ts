@@ -174,7 +174,8 @@ export async function loadBundle() {
         recurrence: r.recurrence ?? "none",
       })),
       doneToday: new Set(
-        (events.data as Row[]).filter((e) => (e.points ?? 0) > 0).map((e) => `${e.kid_id}|${e.item_name}`),
+        // 0-point chores are PointPals "habits": logged as done, no marble.
+        (events.data as Row[]).filter((e) => (e.points ?? 0) >= 0).map((e) => `${e.kid_id}|${e.item_name}`),
       ),
       error: undefined,
     });
@@ -230,6 +231,8 @@ function subscribe(hid: string) {
     .on("postgres_changes", { event: "*", schema: "public", table: "kids", filter: `household_id=eq.${hid}` }, reload)
     .on("postgres_changes", { event: "*", schema: "public", table: "households", filter: `id=eq.${hid}` }, reload)
     .on("postgres_changes", { event: "*", schema: "public", table: "point_events", filter: `household_id=eq.${hid}` }, reload)
+    // New or changed chores (names, points, who they're for) show up straight away.
+    .on("postgres_changes", { event: "*", schema: "public", table: "chores", filter: `household_id=eq.${hid}` }, reload)
     .subscribe();
 }
 
@@ -280,6 +283,11 @@ export async function pointpalsAward(kidId: string, item: { name: string; icon: 
     awarded_by: uid,
   });
   if (evErr) throw evErr;
+  // A 0-point chore is logged as done (recognition) but drops no marble.
+  if (item.points === 0) {
+    await loadBundle();
+    return;
+  }
 
   const kidPatch: Row = {
     current_points: Math.max(0, kid.currentPoints + item.points),
