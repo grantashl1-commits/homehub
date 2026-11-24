@@ -101,7 +101,7 @@ function Hero() {
 
       <div className="relative mt-4">
         <p className="mb-2.5 text-[1.05rem] font-black uppercase tracking-[0.1em] opacity-60">Who's here?</p>
-        <div className="flex flex-wrap gap-x-3.5 gap-y-2 pt-1">
+        <div className="flex flex-wrap gap-x-5 gap-y-2 pt-1.5">
           {members.slice(0, 6).map((m) => (
             <WhoButton key={m.id} member={m} />
           ))}
@@ -372,9 +372,9 @@ function JarTile() {
   // Everyone with a jar: the kids, plus grown-ups PointPals counts as earners.
   const kids = useHub(useShallow((s) => s.members.filter((m) => m.role === "child" || !!m.pointpalsKidId)));
   return (
-    <Link to="/me" onClick={() => sfx.tap()} className="tap card flex min-h-[20rem] flex-col gap-3 overflow-hidden bg-sun-tint p-4 md:min-h-0">
-      <div className="flex items-center gap-3">
-        <MarbleJar count={jar.count} target={jar.target} size={6.5} pending={pending} />
+    <Link to="/me" onClick={() => sfx.tap()} className="tap card flex min-h-[20rem] flex-col gap-2.5 overflow-hidden bg-sun-tint p-4 md:min-h-0">
+      <div className="flex shrink-0 items-center gap-3">
+        <MarbleJar count={jar.count} target={jar.target} size={5.4} pending={pending} />
         <div className="min-w-0 flex-1">
           <p className="text-[1.05rem] font-black uppercase tracking-[0.08em] text-[#8a6a10]">Family jar</p>
           <p className="font-display text-[2.6rem] font-black leading-none">
@@ -405,13 +405,11 @@ function KidJar({ member }: { member: Member }) {
   const count = personal ? kid.personalPool : marbles;
   const target = personal ? kid.personalTarget : undefined;
   return (
-    <div className="flex min-w-0 flex-col items-center justify-end rounded-[1.2rem] bg-white/60 px-1 py-2 text-center">
-      <MarbleJar count={count} target={target ?? Math.max(count, 10)} size={4.6} />
-      <p className="mt-1 w-full truncate text-[1.1rem] font-black">{member.name}</p>
-      <p className="w-full truncate text-[1rem] font-extrabold text-ink-2">
-        {target ? `${count}/${target}` : `${count} marble${count === 1 ? "" : "s"}`}
-      </p>
-      {personal && kid.personalReward && <p className="w-full truncate text-[0.9rem] font-bold text-ink-3">{kid.personalReward}</p>}
+    // Compact so four jars sit in one row, even on a short tablet screen.
+    <div className="flex min-h-0 min-w-0 flex-col items-center justify-center overflow-hidden rounded-[1.1rem] bg-white/60 px-1 py-1.5 text-center leading-tight" title={personal && kid.personalReward ? kid.personalReward : undefined}>
+      <MarbleJar count={count} target={target ?? Math.max(count, 10)} size={2.8} />
+      <p className="mt-0.5 w-full truncate text-[1.05rem] font-black">{member.name}</p>
+      <p className="w-full truncate text-[0.95rem] font-extrabold text-ink-2">{target ? `${count}/${target}` : `${count} marble${count === 1 ? "" : "s"}`}</p>
     </div>
   );
 }
@@ -428,6 +426,9 @@ function ListTile() {
       <p className="font-display text-[3rem] font-black leading-none">
         {todo.length} <span className="text-[1.6rem] text-ink-2">to buy</span>
       </p>
+      {todo.length === 0 && (
+        <p className="mt-3 text-[1.4rem] font-bold text-ink-2">All stocked up! 🎉 Tap to add something.</p>
+      )}
       <div className="mt-3 flex min-h-0 flex-1 flex-wrap content-start gap-2 overflow-hidden">
         {todo.slice(0, 18).map((i) => (
           <span key={i.id} className="rounded-full bg-white px-3 py-1 text-[1.15rem] font-extrabold">
@@ -453,7 +454,7 @@ function NotesTile() {
           {unread > 0 ? ` · ${unread} new` : ""}
         </span>
       </div>
-      <div className="mt-3 grid min-h-0 flex-1 grid-cols-2 content-start gap-3 overflow-hidden">
+      <div className="mt-2 grid min-h-0 flex-1 grid-cols-2 content-start gap-3 overflow-hidden px-1.5 pb-2 pt-2.5">
         {shown.map((n, i) => {
           const c = noteColor(n.color);
           const from = members.find((m) => m.id === n.from);
@@ -465,7 +466,7 @@ function NotesTile() {
               whileHover={{ rotate: 0 }}
             >
               <span className="absolute -top-2 left-1/2 size-4 -translate-x-1/2 rounded-full bg-coral shadow ring-2 ring-white/70" />
-              <p className="line-clamp-3 text-[1.1rem] font-extrabold leading-tight">
+              <p className="line-clamp-2 text-[1.1rem] font-extrabold leading-tight">
                 {n.kind === "voice" ? "🎤 Voice note" : n.kind === "doodle" ? "🖍️ A drawing" : n.text}
               </p>
               {from && <p className="mt-1 text-[0.95rem] font-black opacity-70">– {from.name}</p>}
