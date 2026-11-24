@@ -67,6 +67,17 @@ export interface CheckIn {
   at: number;
 }
 
+/** A recorded dinnertime chat: the transcript, a summary, and each person's part. */
+export interface FamilyReflection {
+  id: string;
+  date: string;
+  at: number;
+  transcript: string;
+  summary?: string;
+  /** memberId → a few lines about what they shared. */
+  people: Record<string, string>;
+}
+
 export interface ReflectionNight {
   date: string;
   completedAt: number;
@@ -196,4 +207,9 @@ export interface Recipe {
   serves: number | null;
   time: string | null;
   category: string | null;
+  /** Method steps, when we have them (the family's own SIGNAL recipes). */
+  method?: string[];
+  /** One of the family's own recipes from SIGNAL "My recipes" (id "user:<uuid>"). */
+  mine?: boolean;
+  sourceUrl?: string | null;
 }

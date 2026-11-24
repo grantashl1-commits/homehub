@@ -1,7 +1,7 @@
 /**
  * /api/notion: the parent area's window into the "Home Hub" page in Notion.
  *   GET  → this month's spending by category, bills due in 14 days, life
- *          admin tasks marked "Show on hub".
+ *          admin tasks that aren't done.
  *   POST → { action: "addExpense" | "completeTask" | "markBillPaid", ... }
  * Each family connects their own Notion: NOTION_TOKEN (an internal integration
  * connected to their Home Hub page) saved in Parent → Connections, plus the
@@ -125,12 +125,8 @@ async function summary({ token, ds: DS, homeUrl }: Ctx) {
       sorts: [{ property: "Next due", direction: "ascending" }],
     }),
     query(token, DS.lifeAdmin, {
-      filter: {
-        and: [
-          { property: "Show on hub", checkbox: { equals: true } },
-          { property: "Status", status: { does_not_equal: "Done" } },
-        ],
-      },
+      // Every Life Admin task that isn't done (not just the "Show on hub" ones).
+      filter: { property: "Status", status: { does_not_equal: "Done" } },
       sorts: [{ property: "Due", direction: "ascending" }],
     }),
   ]);

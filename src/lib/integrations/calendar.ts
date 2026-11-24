@@ -103,3 +103,23 @@ export function bookingKind(e: CalendarEvent): "clean" | "checkin" | "checkout" 
   if (t.includes("check-out") || t.includes("check out") || t.includes("depart")) return "checkout";
   return "stay";
 }
+
+/* ── Tasks ─────────────────────────────────────────────────────────────── */
+
+const TASK_PREFIX = /^\s*(?:(?:to[\s-]?do|task)\s*[:\-–—]\s*|☐\s*|\[\s?\]\s*)/i;
+
+/**
+ * Is this calendar entry a task rather than an appointment? Google's private
+ * calendar link doesn't include Google Tasks, so a task is anything titled
+ * "To do: …" / "Task: …" / "☐ …", or an all-day entry on the family or kids'
+ * calendar (not school terms, holidays or bookings).
+ */
+export function isTask(e: CalendarEvent): boolean {
+  if (TASK_PREFIX.test(e.title)) return true;
+  return e.allDay && (e.calendar === "family" || e.calendar === "kids");
+}
+
+/** The task's wording without the "To do:" prefix. */
+export function taskTitle(e: CalendarEvent): string {
+  return e.title.replace(TASK_PREFIX, "").trim() || e.title;
+}

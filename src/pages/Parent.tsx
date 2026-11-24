@@ -389,7 +389,7 @@ function Family() {
                   aria-label={`${m.name}'s birthday`}
                 />
               </label>
-              {m.role === "child" && ppKids.length > 0 && (
+              {ppKids.length > 0 && (
                 <select
                   value={m.pointpalsKidId ?? ""}
                   onChange={(e) => updateMember(m.id, { pointpalsKidId: e.target.value || undefined })}
@@ -590,7 +590,7 @@ function Todos() {
       {!notion.data ? (
         <div className="skeleton h-[16rem] rounded-[1.6rem]" />
       ) : tasks.length === 0 ? (
-        <EmptyState emoji="✅" title="Nothing on the hub list" body="Tick “Show on hub” on a Life Admin task in Notion to see it here." />
+        <EmptyState emoji="✅" title="All done" body="Every Life Admin task in Notion is marked Done. New ones show here and on the home screen." />
       ) : (
         <div className="flex flex-col gap-2.5">
           {tasks.map((t) => (
@@ -900,6 +900,7 @@ function SignInPanel({
 
 function SettingsTab() {
   const s = useHub((x) => x.settings);
+  const ppConnected = usePointPals((x) => !!x.userId);
   const update = useHub((x) => x.updateSettings);
   const [pin, setPin] = useState("");
   const [pin2, setPin2] = useState("");
@@ -1015,31 +1016,23 @@ function SettingsTab() {
         <Stepper label="Slideshow after" value={s.screensaverMins} suffix=" min" min={1} max={30} onChange={(v) => update({ screensaverMins: v })} />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <Field label="Family jar reward (when PointPals isn't connected)" value={s.familyJarReward} onChange={(e) => update({ familyJarReward: e.target.value })} />
-        <Stepper label="Marbles needed" value={s.familyJarTarget} min={10} max={200} step={5} onChange={(v) => update({ familyJarTarget: v })} />
-      </div>
+      {ppConnected ? (
+        <p className="rounded-[1.4rem] bg-sun-tint px-5 py-3 text-[1.2rem] font-bold text-ink-2">The family jar, its reward and target come from PointPals.</p>
+      ) : (
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Family jar reward" value={s.familyJarReward} onChange={(e) => update({ familyJarReward: e.target.value })} />
+          <Stepper label="Marbles needed" value={s.familyJarTarget} min={10} max={200} step={5} onChange={(v) => update({ familyJarTarget: v })} />
+        </div>
+      )}
 
       <div className="rounded-[1.8rem] bg-sage-tint p-5">
         <p className="font-display text-[2.2rem] font-black">Guest mode 🏡</p>
         <p className="mb-4 text-[1.2rem] font-bold text-ink-2">For when the house is let to Airbnb guests. Family things are hidden; leaving needs the PIN.</p>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Wi-Fi name" value={s.wifiName} onChange={(e) => update({ wifiName: e.target.value })} />
-          <Field label="Wi-Fi password" value={s.wifiPassword} onChange={(e) => update({ wifiPassword: e.target.value })} />
-          <Field label="House guide link (web page or PDF)" value={s.guidebookUrl} onChange={(e) => update({ guidebookUrl: e.target.value.trim() })} placeholder="https://…/house-guide.pdf" />
+          <Field label="Wi-Fi password" type="password" autoComplete="off" value={s.wifiPassword} onChange={(e) => update({ wifiPassword: e.target.value })} />
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-3">
-          {(["checkout", "heating", "appliances", "local"] as const).map((k) => (
-            <label key={k} className="block">
-              <span className="mb-1 block text-[1.15rem] font-extrabold capitalize text-ink-2">{k === "local" ? "Local tips" : k}</span>
-              <textarea
-                value={s.houseGuide[k]}
-                onChange={(e) => update({ houseGuide: { ...s.houseGuide, [k]: e.target.value } })}
-                className="h-[6rem] w-full resize-none rounded-[1.2rem] border-2 border-line bg-white p-3 text-[1.2rem] font-bold outline-none focus:border-sky"
-              />
-            </label>
-          ))}
-        </div>
+        <p className="mt-3 text-[1.15rem] font-bold text-ink-2">The guest screen shows the Wi-Fi with a code to scan, and the 5 Lens Way house guide guests can tap through.</p>
         <BigButton tone="sage" size="lg" className="mt-4" onClick={() => update({ guestMode: true })}>
           Turn on guest mode
         </BigButton>

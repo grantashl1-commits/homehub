@@ -60,6 +60,8 @@ export interface Guide {
   subtitle: string;
   address: string;
   mapUrl: string;
+  /** The printed guide, for the QR code guests scan to take it with them. */
+  pdfUrl?: string;
   host: { names: string; phone: string; email: string };
   /** One-tap chips under the title that jump to a chapter. */
   essentials: { label: string; emoji: string; section: string }[];
@@ -162,6 +164,7 @@ export const FIVE_LENS_WAY: Guide = {
   subtitle: "Acacia Bay · Taupō",
   address: "5 Lens Way, Acacia Bay, Taupō",
   mapUrl: "https://www.google.com/maps/search/?api=1&query=5+Lens+Way+Acacia+Bay+Taupo",
+  pdfUrl: `${SITE}/guides/5-lens-way-house-guide.pdf`,
   host: { names: "Matt & Ash", phone: "027 697 7961", email: "bookings@carlsonproperties.co.nz" },
   essentials: [
     { label: "Wi-Fi", emoji: "📶", section: "arrival" },

@@ -49,6 +49,8 @@ const SYNCED_KEYS = [
   "mealHearts",
   "localDinners",
   "photos",
+  "doneTasks",
+  "reflections",
 ] as const satisfies readonly (keyof HubState)[];
 
 /** Settings that belong to one screen, not the family. */

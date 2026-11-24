@@ -128,3 +128,85 @@ Verified at 1180×820 (iPad), 1366×768 (Chromebook) and 1920×1080 (wall).
 - Photos are cached for offline, and any that fail fall back to a plain panel.
 - Content: `src/content/guides.ts`; screen: `src/components/HouseGuide.tsx`;
   tests: `src/content/guides.test.ts`.
+
+## 24 Nov 2026: home screen tidy-up, and phones
+
+- Hero card: room under "Who's here?", names on a pill so they read on every
+  sky, and two clear badges on each face: ✉️ new notes for them, ⭐ PointPals
+  jobs still to do.
+- The UV and "sleeps till" chips are gone. In their place: Today, then a
+  **To do** bullet list (bin night plus calendar tasks: anything titled
+  "To do: …", "Task: …" or "☐ …", or an all-day entry on the family or kids'
+  calendar), tickable and synced, then **Coming up** for the next few days, so
+  the card is full even on a quiet day.
+- Jar card: the family jar plus each child's own jar (their PointPals personal
+  jar when split jars are on, otherwise their marbles).
+- Shopping card: no "Synced with SIGNAL" line; shows more items.
+- Fridge notes: "3 notes · 2 new" so it matches the Notes tab (which counts new
+  ones), every note on phones, two on the bench, and "View all".
+- The + Shopping / + Calendar / + Note buttons are gone; the cards open those pages.
+- Phones: one scrolling column, compact header and a full-width nav that fits
+  six tabs; safe-area insets for notches; the installed app is no longer
+  locked to landscape. Other pages still need their own phone pass.
+
+## 24 Nov 2026: record the dinnertime chat
+
+- **Record our chat** in the reflection header listens the whole way round the
+  table (the device's own speech-to-text: Chrome on the Chromebook/wall PC,
+  Safari on iPad/iPhone; it keeps listening through pauses until Stop).
+- On the summary, **Save our reflection** sends the transcript to DeepSeek
+  (`/api/reflect-summary`, `DEEPSEEK_API_KEY`), which writes a short family
+  summary and a few lines for each person. If DeepSeek isn't set up, the
+  transcript is still saved.
+- Each person's lines appear under **My reflections** on their profile, with
+  read-aloud. Saved reflections sync with the family account.
+
+## 24 Nov 2026: recipes: search everything, import from a link, straight onto the list
+
+- The dinner picker searched only dinners that had a photo, so breakfast
+  and baking recipes (every pancake recipe) and 136 photo-less recipes never
+  showed. It now searches all 1,039 SIGNAL recipes plus the family's own
+  SIGNAL "My recipes", by name then ingredients, with filters (All, Dinners,
+  Breakfast, Snacks & baking, Our recipes).
+- **Import from a link** (in the picker): `/api/recipe-import` reads the page
+  (its schema.org recipe data when it has it, using SIGNAL's own reader copied
+  to `api/_recipe-schema.ts`), and DeepSeek writes it up SIGNAL-style with the
+  amounts in each method step. Check it, keep the website's photo or upload
+  your own (shrunk to a 1000px JPEG on the recipe), and save to SIGNAL's
+  My recipes (`user_recipes`, under SIGNAL's RLS). It's then picked for that day.
+- Choosing a dinner puts its ingredients on the shopping list (SIGNAL when
+  connected), labelled with the recipe, skipping anything already there;
+  delete what's already in the cupboard. Note: SIGNAL's own list screen also
+  works out meal-plan ingredients itself, so a library recipe can show twice
+  there. The family's own recipes don't.
+
+## 24 Nov 2026: PointPals people, jobs and jars
+
+- Hub people are linked to PointPals by name automatically (Mum, Dad, Leo,
+  Ruby), saved on the member so it syncs; Parent → Family can still change it.
+  Before, anyone not linked by hand saw the hub's sample jobs and marbles.
+- Jobs come from PointPals and only the ones assigned to that person.
+- Grown-ups PointPals counts as earners get their jobs, points and jar too.
+- Jars show each person's own PointPals jar (e.g. 6/50) when they have one.
+- Points both ways: awards made in PointPals show on the hub within a second
+  (realtime); with the parent area unlocked, tapping a job says "Give +N" and
+  awards it in PointPals straight away; kids' "I did it!" still waits in
+  Approvals and is awarded the PointPals way when approved.
+- The Notes tab badge now counts notes on the fridge, the same as the home card.
+
+## 24 Nov 2026: habits, Notion to-dos, slideshow button, parent tidy-up
+
+- Habits: SIGNAL's habit library (62 habits with SIGNAL's illustrations) plus
+  the kids' and family picture habits, with search; progress shows tick
+  today, current and best streak, this month, this week's ticks and a
+  4-week tick chart.
+- Home To do now also lists Notion Life Admin tasks that are overdue, due
+  today or undated (every open task, no "Show on hub" needed); ticking one
+  marks it Done in Notion.
+- A slideshow button on the home card starts the photo slideshow; it still
+  starts by itself after the idle time, and a tap goes back home.
+- Guest screen: the Check-out / Sauna, spa & heating / The house / Things to
+  do tiles open those chapters of the house guide; the guide QR comes from the
+  guide. Settings no longer has the guide link and the four text boxes; the
+  Wi-Fi password is hidden; the local jar settings hide when PointPals is
+  connected. Family: the PointPals link is offered for grown-ups too.

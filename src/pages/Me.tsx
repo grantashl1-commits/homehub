@@ -17,6 +17,8 @@ import { celebrate } from "@/components/Celebrate";
 import { MarbleJar } from "@/components/MarbleJar";
 import { BigButton, ChoreIcon, EmptyState, ReadAloud, Sheet } from "@/components/ui";
 import { cn } from "@/lib/utils";
+import { pointpalsAward, usePointPals } from "@/lib/integrations/pointpals";
+import { useParentUnlocked } from "@/components/PinPad";
 
 export function MePicker() {
   const members = useHub((s) => s.members);
@@ -82,9 +84,11 @@ export function KidZone() {
   const member = useMember(id);
   const navigate = useNavigate();
   const [listOpen, setListOpen] = useState(false);
+  const ppSignedIn = usePointPals((s) => !!s.userId);
   if (!member) return <EmptyState emoji="🤔" title="Who's that?" action={<BigButton onClick={() => navigate("/me")}>Pick someone</BigButton>} />;
   const p = pal(member.palId);
-  const isKid = member.role === "child";
+  // Kids, and anyone PointPals counts as an earner (Mum and Dad can earn too).
+  const isKid = member.role === "child" || !!(ppSignedIn && member.pointpalsKidId);
 
   return (
     <div className="grid h-full grid-cols-[minmax(0,0.85fr)_minmax(0,2fr)] gap-[1.3rem]">
@@ -143,7 +147,7 @@ function ProfileCard({ member }: { member: Member }) {
         <ReadAloud text={hello} size={3.2} />
       </div>
 
-      {member.role === "child" && (
+      {(member.role === "child" || !!member.pointpalsKidId) && (
         <div className="mt-4 w-full rounded-[1.4rem] bg-white/85 p-4 text-left">
           <p className="text-[1.1rem] font-black uppercase tracking-[0.08em] text-ink-3">My marbles</p>
           <div className="mt-1 flex items-center gap-2">
@@ -157,10 +161,12 @@ function ProfileCard({ member }: { member: Member }) {
         </div>
       )}
 
+      <MyReflections member={member} />
+
       <Link
         to={`/habits/${member.id}`}
         onClick={() => sfx.tap()}
-        className="tap mt-auto flex w-full items-center gap-3 rounded-[1.4rem] bg-white p-3 text-left shadow-sm"
+        className="tap mt-3 flex w-full items-center gap-3 rounded-[1.4rem] bg-white p-3 text-left shadow-sm"
       >
         {habit ? <ChoreIcon icon={habit.icon} size={4} /> : <span className="text-[3rem]">🌱</span>}
         <span className="min-w-0 flex-1">
@@ -178,12 +184,76 @@ function ProfileCard({ member }: { member: Member }) {
   );
 }
 
+const NO_REFLECTIONS: import("@/lib/types").FamilyReflection[] = [];
+
+/** What this person shared at dinnertime, from the recorded chats. */
+function MyReflections({ member }: { member: Member }) {
+  const [open, setOpen] = useState(false);
+  const mine = useHub(useShallow((s) => (s.reflections ?? NO_REFLECTIONS).filter((r) => r.people[member.id])));
+  const p = pal(member.palId);
+  if (!mine.length) return <div className="mt-auto" />;
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => {
+          sfx.tap();
+          setOpen(true);
+        }}
+        className="tap mt-auto flex w-full items-center gap-3 rounded-[1.4rem] bg-white/85 p-3 text-left shadow-sm"
+      >
+        <span className="text-[2.6rem] leading-none">🍽️</span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[1.05rem] font-black uppercase tracking-[0.08em] text-ink-3">My reflections</span>
+          <span className="block truncate text-[1.25rem] font-extrabold">{mine[0].people[member.id]}</span>
+        </span>
+        <span className="rounded-full px-2.5 py-0.5 text-[1.05rem] font-black text-white" style={{ background: p.shade }}>
+          {mine.length}
+        </span>
+      </button>
+      <Sheet open={open} onOpenChange={setOpen} title={`${member.name}'s reflections`}>
+        <ul className="flex max-h-[60vh] flex-col gap-3 overflow-y-auto pr-1">
+          {mine.map((r) => (
+            <li key={r.id} className="rounded-[1.4rem] p-4" style={{ background: p.tint }}>
+              <div className="flex items-start gap-3">
+                <p className="min-w-0 flex-1 text-[1.1rem] font-black uppercase tracking-[0.08em] text-ink-3">
+                  {new Date(r.at).toLocaleDateString("en-NZ", { weekday: "long", day: "numeric", month: "long" })}
+                </p>
+                <ReadAloud text={r.people[member.id]} size={3} />
+              </div>
+              <p className="mt-1 text-[1.35rem] font-bold leading-snug text-ink">{r.people[member.id]}</p>
+              {r.summary && <p className="mt-2 text-[1.15rem] font-semibold leading-snug text-ink-2">Family: {r.summary}</p>}
+            </li>
+          ))}
+        </ul>
+      </Sheet>
+    </>
+  );
+}
+
 function Jobs({ member }: { member: Member }) {
   const { chores, source } = useChoresFor(member);
   const addClaim = useHub((s) => s.addClaim);
   const todo = chores.filter((c) => c.state !== "done").length;
 
-  const claim = (c: ChoreView) => {
+  const parent = useParentUnlocked();
+  const claim = async (c: ChoreView) => {
+    // A grown-up with the parent area unlocked gives the points straight away,
+    // in PointPals itself when it's connected. Otherwise it waits for approval.
+    if (parent) {
+      try {
+        if (source === "pointpals" && member.pointpalsKidId) {
+          await pointpalsAward(member.pointpalsKidId, { name: c.name, icon: c.icon, points: c.points });
+        } else {
+          useHub.getState().addLocalMarbles(member.id, c.points);
+        }
+        sfx.marble();
+        celebrate({ title: `+${c.points} for ${member.name}!`, subtitle: c.name, palId: member.palId, photo: member.photo });
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "PointPals didn't accept that");
+      }
+      return;
+    }
     sfx.marble();
     addClaim({
       memberId: member.id,
@@ -219,6 +289,7 @@ function Jobs({ member }: { member: Member }) {
 }
 
 function JobCard({ chore, member, onDone }: { chore: ChoreView; member: Member; onDone: () => void }) {
+  const giving = useParentUnlocked();
   const p = pal(member.palId);
   return (
     <motion.div
@@ -242,7 +313,7 @@ function JobCard({ chore, member, onDone }: { chore: ChoreView; member: Member; 
             className="tap flex min-h-[3.8rem] w-full items-center justify-center gap-2 rounded-[1.2rem] bg-sage text-[1.35rem] font-black text-white shadow-[0_8px_20px_-10px_rgb(111_183_132/0.9)]"
             exit={{ rotateX: 90, opacity: 0 }}
           >
-            <Sparkles className="size-6" /> I did it!
+            <Sparkles className="size-6" /> {giving ? `Give +${chore.points}` : "I did it!"}
           </motion.button>
         )}
         {chore.state === "pending" && (
