@@ -13,6 +13,8 @@ import { Avatar } from "@/components/Avatar";
 import { AudioPlayer, VoiceRecorder } from "@/components/Voice";
 import { BigButton, ChoreIcon, ReadAloud } from "@/components/ui";
 import { cn } from "@/lib/utils";
+import { useTranscriber } from "@/lib/transcribe";
+import { RecordPill, SaveReflection } from "@/components/ReflectionRecorder";
 
 type Phase = "intro" | "ask" | "why" | "summary";
 
@@ -29,6 +31,7 @@ export default function Reflect() {
   const [whyMode, setWhyMode] = useState<"choose" | "type" | "talk">("choose");
   const [why, setWhy] = useState("");
   const [busy, setBusy] = useState(false);
+  const recorder = useTranscriber();
   const today = dateKey();
 
   const person = members[index];
@@ -102,7 +105,10 @@ export default function Reflect() {
             );
           })}
         </div>
-        <p className="font-display text-[2.2rem] font-black">Dinnertime reflection 🍽️</p>
+        <div className="flex min-w-0 items-center gap-4">
+          <p className="font-display text-[2.2rem] font-black max-xl:hidden">Dinnertime reflection 🍽️</p>
+          <RecordPill t={recorder} />
+        </div>
         <button
           type="button"
           aria-label="Close"
@@ -229,7 +235,11 @@ export default function Reflect() {
             </Stage>
           )}
 
-          {phase === "summary" && <Summary key="summary" onDone={() => navigate("/")} streak={familyStreak(nights)} onRenew={(id) => updateHabit(id, { startDate: today })} />}
+          {phase === "summary" && (
+            <Summary key="summary" onDone={() => navigate("/")} streak={familyStreak(nights)} onRenew={(id) => updateHabit(id, { startDate: today })}>
+              <SaveReflection t={recorder} />
+            </Summary>
+          )}
         </AnimatePresence>
       </div>
 
@@ -297,7 +307,7 @@ function QuickHabitPick({
   );
 }
 
-function Summary({ onDone, streak, onRenew }: { onDone: () => void; streak: number; onRenew: (habitId: string) => void }) {
+function Summary({ onDone, streak, onRenew, children }: { onDone: () => void; streak: number; onRenew: (habitId: string) => void; children?: React.ReactNode }) {
   const navigate = useNavigate();
   const members = useHub((s) => s.members);
   const habits = useHub((s) => s.habits);
@@ -347,6 +357,7 @@ function Summary({ onDone, streak, onRenew }: { onDone: () => void; streak: numb
           );
         })}
       </div>
+      {children}
       <BigButton size="xl" onClick={onDone}>
         Goodnight table! 🌙
       </BigButton>

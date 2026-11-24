@@ -10,6 +10,7 @@ import { dateKey } from "./time";
 import type {
   CheckIn,
   CheckInStatus,
+  FamilyReflection,
   Chore,
   Claim,
   Habit,
@@ -78,6 +79,8 @@ export interface HubState {
   photos: Photo[];
   /** Calendar tasks ticked off: event id → the day it was ticked. */
   doneTasks: Record<string, string>;
+  /** Recorded dinnertime chats, newest first. */
+  reflections: FamilyReflection[];
 
   updateSettings: (patch: Partial<Settings>) => void;
   setMembers: (members: Member[]) => void;
@@ -118,6 +121,8 @@ export interface HubState {
 
   addPhoto: (p: Omit<Photo, "id" | "addedAt">) => void;
   toggleTask: (eventId: string) => void;
+  addReflection: (r: Omit<FamilyReflection, "id" | "at">) => void;
+  removeReflection: (id: string) => void;
   removePhoto: (id: string) => void;
 
   resetAll: () => void;
@@ -140,6 +145,7 @@ const initialData = () => ({
   localDinners: {} as Record<string, string>,
   photos: [] as Photo[],
   doneTasks: {} as Record<string, string>,
+  reflections: [] as FamilyReflection[],
 });
 
 export const useHub = create<HubState>()(
@@ -265,6 +271,10 @@ export const useHub = create<HubState>()(
       addPhoto: (p) =>
         set((s) => ({ photos: [...s.photos, { ...p, id: uid("photo"), addedAt: Date.now() }] })),
       removePhoto: (id) => set((s) => ({ photos: s.photos.filter((p) => p.id !== id) })),
+
+      addReflection: (r) =>
+        set((s) => ({ reflections: [{ ...r, id: uid("refl"), at: Date.now() }, ...s.reflections].slice(0, 120) })),
+      removeReflection: (id) => set((s) => ({ reflections: s.reflections.filter((r) => r.id !== id) })),
 
       toggleTask: (eventId) =>
         set((s) => {

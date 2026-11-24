@@ -157,10 +157,12 @@ function ProfileCard({ member }: { member: Member }) {
         </div>
       )}
 
+      <MyReflections member={member} />
+
       <Link
         to={`/habits/${member.id}`}
         onClick={() => sfx.tap()}
-        className="tap mt-auto flex w-full items-center gap-3 rounded-[1.4rem] bg-white p-3 text-left shadow-sm"
+        className="tap mt-3 flex w-full items-center gap-3 rounded-[1.4rem] bg-white p-3 text-left shadow-sm"
       >
         {habit ? <ChoreIcon icon={habit.icon} size={4} /> : <span className="text-[3rem]">🌱</span>}
         <span className="min-w-0 flex-1">
@@ -175,6 +177,53 @@ function ProfileCard({ member }: { member: Member }) {
         </span>
       </Link>
     </section>
+  );
+}
+
+const NO_REFLECTIONS: import("@/lib/types").FamilyReflection[] = [];
+
+/** What this person shared at dinnertime, from the recorded chats. */
+function MyReflections({ member }: { member: Member }) {
+  const [open, setOpen] = useState(false);
+  const mine = useHub(useShallow((s) => (s.reflections ?? NO_REFLECTIONS).filter((r) => r.people[member.id])));
+  const p = pal(member.palId);
+  if (!mine.length) return <div className="mt-auto" />;
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => {
+          sfx.tap();
+          setOpen(true);
+        }}
+        className="tap mt-auto flex w-full items-center gap-3 rounded-[1.4rem] bg-white/85 p-3 text-left shadow-sm"
+      >
+        <span className="text-[2.6rem] leading-none">🍽️</span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[1.05rem] font-black uppercase tracking-[0.08em] text-ink-3">My reflections</span>
+          <span className="block truncate text-[1.25rem] font-extrabold">{mine[0].people[member.id]}</span>
+        </span>
+        <span className="rounded-full px-2.5 py-0.5 text-[1.05rem] font-black text-white" style={{ background: p.shade }}>
+          {mine.length}
+        </span>
+      </button>
+      <Sheet open={open} onOpenChange={setOpen} title={`${member.name}'s reflections`}>
+        <ul className="flex max-h-[60vh] flex-col gap-3 overflow-y-auto pr-1">
+          {mine.map((r) => (
+            <li key={r.id} className="rounded-[1.4rem] p-4" style={{ background: p.tint }}>
+              <div className="flex items-start gap-3">
+                <p className="min-w-0 flex-1 text-[1.1rem] font-black uppercase tracking-[0.08em] text-ink-3">
+                  {new Date(r.at).toLocaleDateString("en-NZ", { weekday: "long", day: "numeric", month: "long" })}
+                </p>
+                <ReadAloud text={r.people[member.id]} size={3} />
+              </div>
+              <p className="mt-1 text-[1.35rem] font-bold leading-snug text-ink">{r.people[member.id]}</p>
+              {r.summary && <p className="mt-2 text-[1.15rem] font-semibold leading-snug text-ink-2">Family: {r.summary}</p>}
+            </li>
+          ))}
+        </ul>
+      </Sheet>
+    </>
   );
 }
 

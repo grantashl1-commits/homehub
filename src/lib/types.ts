@@ -67,6 +67,17 @@ export interface CheckIn {
   at: number;
 }
 
+/** A recorded dinnertime chat: the transcript, a summary, and each person's part. */
+export interface FamilyReflection {
+  id: string;
+  date: string;
+  at: number;
+  transcript: string;
+  summary?: string;
+  /** memberId → a few lines about what they shared. */
+  people: Record<string, string>;
+}
+
 export interface ReflectionNight {
   date: string;
   completedAt: number;

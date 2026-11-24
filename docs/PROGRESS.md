@@ -148,3 +148,15 @@ Verified at 1180×820 (iPad), 1366×768 (Chromebook) and 1920×1080 (wall).
 - Phones: one scrolling column, compact header and a full-width nav that fits
   six tabs; safe-area insets for notches; the installed app is no longer
   locked to landscape. Other pages still need their own phone pass.
+
+## 24 Nov 2026: record the dinnertime chat
+
+- **Record our chat** in the reflection header listens the whole way round the
+  table (the device's own speech-to-text: Chrome on the Chromebook/wall PC,
+  Safari on iPad/iPhone; it keeps listening through pauses until Stop).
+- On the summary, **Save our reflection** sends the transcript to DeepSeek
+  (`/api/reflect-summary`, `DEEPSEEK_API_KEY`), which writes a short family
+  summary and a few lines for each person. If DeepSeek isn't set up, the
+  transcript is still saved.
+- Each person's lines appear under **My reflections** on their profile, with
+  read-aloud. Saved reflections sync with the family account.

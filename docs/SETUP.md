@@ -24,6 +24,7 @@ Code with the Vercel CLI linked you can also run `vercel env add NAME`.
 | `BOOKINGS_ICAL_URL` (optional) | Airbnb bookings and cleans | Same, on the bookings calendar (guest@carlsonproperties.co.nz) |
 | `KIDS_ICAL_URL` (optional) | A kids' calendar | Same |
 | `NOTION_TOKEN` | Money and To-dos from the Notion "Home Hub" page | notion.so/profile/integrations → New internal integration "Home Hub" → copy the secret. Then on the Home Hub page: ••• → Connections → add Home Hub |
+| `DEEPSEEK_API_KEY` | Writes up the recorded dinnertime chat, and reads recipes off web pages for SIGNAL | platform.deepseek.com → API keys. Optional `DEEPSEEK_MODEL` (default `deepseek-chat`) |
 | `ANTHROPIC_API_KEY` | "Snap a notice": reads school newsletters into events | console.anthropic.com → API keys |
 | `GOOGLE_SERVICE_ACCOUNT_JSON` | A base64'd Google service-account key the hub uses to read the slideshow Drive folder (and, later, write the calendar) | Create a service account in Google Cloud, enable the Google Drive API, add a JSON key, then `[Convert]::ToBase64String([IO.File]::ReadAllBytes("key.json"))` |
 | `SLIDESHOW_DRIVE_FOLDER_ID` | The "Home Hub Slideshow" Google Drive folder | Open the folder → copy the id from the URL (`drive/folders/<id>`). Share the folder with the service account's email as Viewer |
