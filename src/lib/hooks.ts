@@ -49,9 +49,8 @@ export function useChoresFor(member: Member | undefined): { chores: ChoreView[];
     if (!member) return { chores: [], source: "local" as const };
     const linked = !!(pp.userId && member.pointpalsKidId);
     const base: Chore[] = linked
-      ? pp.chores.filter(
-          (c) => !c.memberIds || c.memberIds.length === 0 || c.memberIds.includes(member.pointpalsKidId!),
-        )
+      ? // Only the jobs PointPals assigns to this person (an unassigned chore is for nobody).
+        pp.chores.filter((c) => !!c.memberIds?.includes(member.pointpalsKidId!))
       : localChores.filter((c) => !c.memberIds || c.memberIds.includes(member.id));
     const mine = claims.filter((c) => c.memberId === member.id && c.date === today);
     return {

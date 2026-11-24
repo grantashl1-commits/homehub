@@ -17,6 +17,8 @@ import { celebrate } from "@/components/Celebrate";
 import { MarbleJar } from "@/components/MarbleJar";
 import { BigButton, ChoreIcon, EmptyState, ReadAloud, Sheet } from "@/components/ui";
 import { cn } from "@/lib/utils";
+import { pointpalsAward, usePointPals } from "@/lib/integrations/pointpals";
+import { useParentUnlocked } from "@/components/PinPad";
 
 export function MePicker() {
   const members = useHub((s) => s.members);
@@ -82,9 +84,11 @@ export function KidZone() {
   const member = useMember(id);
   const navigate = useNavigate();
   const [listOpen, setListOpen] = useState(false);
+  const ppSignedIn = usePointPals((s) => !!s.userId);
   if (!member) return <EmptyState emoji="🤔" title="Who's that?" action={<BigButton onClick={() => navigate("/me")}>Pick someone</BigButton>} />;
   const p = pal(member.palId);
-  const isKid = member.role === "child";
+  // Kids, and anyone PointPals counts as an earner (Mum and Dad can earn too).
+  const isKid = member.role === "child" || !!(ppSignedIn && member.pointpalsKidId);
 
   return (
     <div className="grid h-full grid-cols-[minmax(0,0.85fr)_minmax(0,2fr)] gap-[1.3rem]">
@@ -143,7 +147,7 @@ function ProfileCard({ member }: { member: Member }) {
         <ReadAloud text={hello} size={3.2} />
       </div>
 
-      {member.role === "child" && (
+      {(member.role === "child" || !!member.pointpalsKidId) && (
         <div className="mt-4 w-full rounded-[1.4rem] bg-white/85 p-4 text-left">
           <p className="text-[1.1rem] font-black uppercase tracking-[0.08em] text-ink-3">My marbles</p>
           <div className="mt-1 flex items-center gap-2">
@@ -232,7 +236,24 @@ function Jobs({ member }: { member: Member }) {
   const addClaim = useHub((s) => s.addClaim);
   const todo = chores.filter((c) => c.state !== "done").length;
 
-  const claim = (c: ChoreView) => {
+  const parent = useParentUnlocked();
+  const claim = async (c: ChoreView) => {
+    // A grown-up with the parent area unlocked gives the points straight away,
+    // in PointPals itself when it's connected. Otherwise it waits for approval.
+    if (parent) {
+      try {
+        if (source === "pointpals" && member.pointpalsKidId) {
+          await pointpalsAward(member.pointpalsKidId, { name: c.name, icon: c.icon, points: c.points });
+        } else {
+          useHub.getState().addLocalMarbles(member.id, c.points);
+        }
+        sfx.marble();
+        celebrate({ title: `+${c.points} for ${member.name}!`, subtitle: c.name, palId: member.palId, photo: member.photo });
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "PointPals didn't accept that");
+      }
+      return;
+    }
     sfx.marble();
     addClaim({
       memberId: member.id,
@@ -268,6 +289,7 @@ function Jobs({ member }: { member: Member }) {
 }
 
 function JobCard({ chore, member, onDone }: { chore: ChoreView; member: Member; onDone: () => void }) {
+  const giving = useParentUnlocked();
   const p = pal(member.palId);
   return (
     <motion.div
@@ -291,7 +313,7 @@ function JobCard({ chore, member, onDone }: { chore: ChoreView; member: Member; 
             className="tap flex min-h-[3.8rem] w-full items-center justify-center gap-2 rounded-[1.2rem] bg-sage text-[1.35rem] font-black text-white shadow-[0_8px_20px_-10px_rgb(111_183_132/0.9)]"
             exit={{ rotateX: 90, opacity: 0 }}
           >
-            <Sparkles className="size-6" /> I did it!
+            <Sparkles className="size-6" /> {giving ? `Give +${chore.points}` : "I did it!"}
           </motion.button>
         )}
         {chore.state === "pending" && (

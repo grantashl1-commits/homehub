@@ -8,6 +8,7 @@
 import { createClient, type RealtimeChannel, type SupabaseClient } from "@supabase/supabase-js";
 import { create } from "zustand";
 import type { Chore } from "../types";
+import { useHub } from "../store";
 
 const URL = import.meta.env.VITE_POINTPALS_SUPABASE_URL as string | undefined;
 const KEY = import.meta.env.VITE_POINTPALS_SUPABASE_KEY as string | undefined;
@@ -177,10 +178,43 @@ export async function loadBundle() {
       ),
       error: undefined,
     });
+    linkByName();
     subscribe(hid);
   } catch (e) {
     usePointPals.setState({ error: e instanceof Error ? e.message : String(e) });
   }
+}
+
+/**
+ * Anyone in the hub family who isn't linked to a PointPals person yet is
+ * linked to the one with the same name (Mum, Dad, Leo, Ruby…). The link is
+ * saved on the member, so it syncs and can still be changed in Parent → Family.
+ */
+function linkByName() {
+  const hub = useHub.getState();
+  for (const [memberId, kidId] of matchByName(hub.members, usePointPals.getState().kids)) {
+    hub.updateMember(memberId, { pointpalsKidId: kidId });
+  }
+}
+
+/** [memberId, PointPals kid id] pairs for unlinked members whose name matches. */
+export function matchByName(
+  members: { id: string; name: string; pointpalsKidId?: string }[],
+  kids: { id: string; name: string }[],
+): [string, string][] {
+  const norm = (s: string) => s.trim().toLowerCase();
+  const valid = new Set(kids.map((k) => k.id));
+  const taken = new Set(members.map((m) => m.pointpalsKidId).filter((id): id is string => !!id && valid.has(id)));
+  const out: [string, string][] = [];
+  for (const m of members) {
+    if (m.pointpalsKidId && valid.has(m.pointpalsKidId)) continue;
+    const match = kids.find((k) => !taken.has(k.id) && norm(k.name) === norm(m.name));
+    if (match) {
+      out.push([m.id, match.id]);
+      taken.add(match.id);
+    }
+  }
+  return out;
 }
 
 function subscribe(hid: string) {

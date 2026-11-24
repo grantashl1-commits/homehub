@@ -216,7 +216,7 @@ function TaskList({ tasks, bins }: { tasks: CalendarEvent[]; bins: ReturnType<ty
 function WhoButton({ member }: { member: Member }) {
   const navigate = useNavigate();
   const notes = useHub((s) => s.notes);
-  const { chores } = useChoresFor(member.role === "child" ? member : undefined);
+  const { chores } = useChoresFor(member);
   const unread = unreadNotesFor(notes, member.id).length;
   const todo = chores.filter((c) => c.state === "todo").length;
   const waiting = [unread && `${unread} new note${unread > 1 ? "s" : ""}`, todo && `${todo} job${todo > 1 ? "s" : ""} to do`]
@@ -333,7 +333,8 @@ function DinnerTile() {
 function JarTile() {
   const jar = useFamilyJar();
   const pending = useHub((s) => s.claims.filter((c) => c.status === "pending").length);
-  const kids = useHub(useShallow((s) => s.members.filter((m) => m.role === "child")));
+  // Everyone with a jar: the kids, plus grown-ups PointPals counts as earners.
+  const kids = useHub(useShallow((s) => s.members.filter((m) => m.role === "child" || !!m.pointpalsKidId)));
   return (
     <Link to="/me" onClick={() => sfx.tap()} className="tap card flex min-h-[20rem] flex-col gap-3 overflow-hidden bg-sun-tint p-4 md:min-h-0">
       <div className="flex items-center gap-3">
@@ -360,12 +361,11 @@ function JarTile() {
   );
 }
 
-/** A child's own jar: their PointPals personal jar when split jars are on, otherwise their marbles. */
+/** Someone's own jar: their PointPals jar (e.g. 6/50) when they have one, otherwise their marbles. */
 function KidJar({ member }: { member: Member }) {
   const marbles = useMarbles(member);
   const kid = usePointPals((s) => (s.userId && member.pointpalsKidId ? s.kids.find((k) => k.id === member.pointpalsKidId) : undefined));
-  const split = usePointPals((s) => !!s.household?.splitJarsEnabled);
-  const personal = kid && split && kid.personalTarget > 0;
+  const personal = kid && kid.personalTarget > 0;
   const count = personal ? kid.personalPool : marbles;
   const target = personal ? kid.personalTarget : undefined;
   return (

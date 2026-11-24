@@ -179,3 +179,17 @@ Verified at 1180×820 (iPad), 1366×768 (Chromebook) and 1920×1080 (wall).
   delete what's already in the cupboard. Note: SIGNAL's own list screen also
   works out meal-plan ingredients itself, so a library recipe can show twice
   there. The family's own recipes don't.
+
+## 24 Nov 2026: PointPals people, jobs and jars
+
+- Hub people are linked to PointPals by name automatically (Mum, Dad, Leo,
+  Ruby), saved on the member so it syncs; Parent → Family can still change it.
+  Before, anyone not linked by hand saw the hub's sample jobs and marbles.
+- Jobs come from PointPals and only the ones assigned to that person.
+- Grown-ups PointPals counts as earners get their jobs, points and jar too.
+- Jars show each person's own PointPals jar (e.g. 6/50) when they have one.
+- Points both ways: awards made in PointPals show on the hub within a second
+  (realtime); with the parent area unlocked, tapping a job says "Give +N" and
+  awards it in PointPals straight away; kids' "I did it!" still waits in
+  Approvals and is awarded the PointPals way when approved.
+- The Notes tab badge now counts notes on the fridge, the same as the home card.

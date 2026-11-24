@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { CalendarDays, Home, Lock, LockOpen, ShoppingBasket, Smile, StickyNote, UtensilsCrossed } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useHub, unreadNotesFor } from "@/lib/store";
+import { useHub } from "@/lib/store";
 import { useNow, useShoppingList } from "@/lib/hooks";
 import { formatDateLong, formatTime } from "@/lib/time";
 import { describeWeather, useWeather } from "@/lib/integrations/weather";
@@ -106,11 +106,11 @@ function TopBar() {
 
 function Dock() {
   const notes = useHub((s) => s.notes);
-  const members = useHub((s) => s.members);
   const { items } = useShoppingList();
-  const unread = new Set(members.flatMap((m) => unreadNotesFor(notes, m.id).map((n) => n.id))).size;
+  // Notes on the fridge, the same number the home card shows.
+  const onFridge = notes.filter((n) => !n.doneAt).length;
   const listCount = items.filter((i) => !i.checked).length;
-  const badges: Record<string, number> = { "/notes": unread, "/list": listCount };
+  const badges: Record<string, number> = { "/notes": onFridge, "/list": listCount };
 
   return (
     <nav className="pointer-events-none absolute inset-x-0 bottom-[max(1.1rem,env(safe-area-inset-bottom))] z-30 flex justify-center max-md:bottom-[max(0.6rem,env(safe-area-inset-bottom))] max-md:px-2">
