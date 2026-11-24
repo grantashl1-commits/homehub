@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+import { create } from "zustand";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { CalendarDays, Home, Lock, LockOpen, ShoppingBasket, Smile, StickyNote, UtensilsCrossed } from "lucide-react";
@@ -157,6 +158,14 @@ function Dock() {
 
 const useAmbient = { lastTouch: Date.now() };
 
+/** Which full-screen layer is showing: the photo slideshow or the night clock. */
+const useAmbientMode = create<{ mode: "none" | "screensaver" | "night" }>(() => ({ mode: "none" }));
+
+/** Start the photo slideshow now (it also starts by itself after the idle time). Tap to leave. */
+export function startSlideshow() {
+  useAmbientMode.setState({ mode: "screensaver" });
+}
+
 function useAmbientBehaviour() {
   const settings = useHub((s) => s.settings);
   const navigate = useNavigate();
@@ -206,7 +215,8 @@ function AmbientLayers() {
   const settings = useHub((s) => s.settings);
   const now = useNow(10_000);
   const { pathname } = useLocation();
-  const [mode, setMode] = useState<"none" | "screensaver" | "night">("none");
+  const mode = useAmbientMode((s) => s.mode);
+  const setMode = (m: "none" | "screensaver" | "night") => useAmbientMode.setState({ mode: m });
   const navigate = useNavigate();
 
   const hour = now.getHours();

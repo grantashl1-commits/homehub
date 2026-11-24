@@ -1,13 +1,16 @@
 import { useShallow } from "zustand/react/shallow";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check, Images } from "lucide-react";
+import { startSlideshow } from "@/components/AppShell";
 import { useHub, unreadNotesFor, activeHabit } from "@/lib/store";
 import { useChoresFor, useFamilyJar, useMarbles, useNow, useShoppingList, useTonightsDinner } from "@/lib/hooks";
 import { dateKey, dayPart, formatTime, greeting } from "@/lib/time";
 import { binReminder, countdowns, reoDay, reoGreeting, sleepsLabel } from "@/lib/nz";
 import { eventMembers, eventStart, isTask, onDay, taskTitle, useCalendar } from "@/lib/integrations/calendar";
 import { usePointPals } from "@/lib/integrations/pointpals";
+import { notionAction, useNotion } from "@/lib/integrations/notion";
+import { toast } from "sonner";
 import { recipeImage } from "@/lib/integrations/signal";
 import { describeWeather, useWeather } from "@/lib/integrations/weather";
 import { groceryEmoji, noteColor } from "@/lib/catalog";
@@ -79,7 +82,21 @@ function Hero() {
           <h1 className="mt-0.5 font-display text-[3.3rem] font-black leading-[0.95]">{settings.teReo ? reoGreeting(now) : english}!</h1>
           {settings.teReo && <p className="text-[1.2rem] font-extrabold leading-tight opacity-70">{english}</p>}
         </div>
-        <ReadAloud text={summary} />
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              sfx.pop();
+              startSlideshow();
+            }}
+            aria-label="Start the photo slideshow"
+            title="Photo slideshow"
+            className="tap grid size-[3.8rem] place-items-center rounded-full bg-white/85 text-ink shadow-[var(--shadow-soft)]"
+          >
+            <Images className="size-6" />
+          </button>
+          <ReadAloud text={summary} />
+        </div>
       </div>
 
       <div className="relative mt-4">
@@ -173,11 +190,29 @@ function EventRow({ e, members, day }: { e: CalendarEvent; members: Member[]; da
 /** Today's to-dos from the calendar (plus bin night), ticked off on the screen. */
 function TaskList({ tasks, bins }: { tasks: CalendarEvent[]; bins: ReturnType<typeof binReminder> }) {
   const done = useHub((s) => s.doneTasks);
-  const toggle = useHub((s) => s.toggleTask);
-  const items = [
-    ...(bins ? [{ id: `bins-${dateKey()}`, label: `🗑️ Bins out ${bins.when}${bins.recycling ? " + recycling ♻️" : ""}` }] : []),
+  const toggleLocal = useHub((s) => s.toggleTask);
+  const notion = useNotion(true);
+  const today = dateKey();
+  // Notion Life Admin: anything overdue, due today, or with no date.
+  const notionTasks = (notion.data?.tasks ?? []).filter((t) => !t.due || t.due.slice(0, 10) <= today);
+  const items: { id: string; label: string; notionId?: string; late?: boolean }[] = [
+    ...(bins ? [{ id: `bins-${today}`, label: `🗑️ Bins out ${bins.when}${bins.recycling ? " + recycling ♻️" : ""}` }] : []),
     ...tasks.map((t) => ({ id: t.id, label: `${t.emoji ? `${t.emoji} ` : ""}${taskTitle(t)}` })),
+    ...notionTasks.map((t) => ({ id: `notion-${t.id}`, notionId: t.id, label: `📋 ${t.task}`, late: !!t.due && t.due.slice(0, 10) < today })),
   ];
+  const toggle = (id: string) => {
+    const item = items.find((i) => i.id === id);
+    toggleLocal(id);
+    if (item?.notionId && !done[id]) {
+      // Ticking a Notion task marks it Done in Notion too.
+      notionAction({ action: "completeTask", id: item.notionId })
+        .then(() => notion.refresh())
+        .catch((e: unknown) => {
+          toggleLocal(id);
+          toast.error(e instanceof Error ? e.message : "Notion didn't take that");
+        });
+    }
+  };
   if (!items.length) return null;
   const left = items.filter((i) => !done[i.id]).length;
   return (
@@ -204,6 +239,7 @@ function TaskList({ tasks, bins }: { tasks: CalendarEvent[]; bins: ReturnType<ty
                   {on && <Check className="size-3.5" strokeWidth={3.5} />}
                 </span>
                 <span className={cn("min-w-0 flex-1 truncate text-[1.25rem] font-extrabold", on && "line-through opacity-50")}>{i.label}</span>
+                {i.late && !on && <span className="shrink-0 rounded-full bg-coral px-2 text-[0.9rem] font-black text-white">overdue</span>}
               </button>
             </li>
           );

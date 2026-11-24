@@ -38,8 +38,8 @@ const SERIF: CSSProperties = {
 };
 const SANS: CSSProperties = { fontFamily: "'Figtree Variable', 'Nunito Sans Variable', system-ui, sans-serif" };
 
-export function HouseGuide({ guide, onClose }: { guide: Guide; onClose: () => void }) {
-  const [index, setIndex] = useState(0);
+export function HouseGuide({ guide, onClose, startAt }: { guide: Guide; onClose: () => void; startAt?: string }) {
+  const [index, setIndex] = useState(() => Math.max(0, guide.sections.findIndex((s) => s.id === startAt)));
   const [dir, setDir] = useState(1);
   const [card, setCard] = useState<GuideCard | null>(null);
   const [photo, setPhoto] = useState<{ src: string; caption: string } | null>(null);

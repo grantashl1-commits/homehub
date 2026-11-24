@@ -193,3 +193,20 @@ Verified at 1180×820 (iPad), 1366×768 (Chromebook) and 1920×1080 (wall).
   awards it in PointPals straight away; kids' "I did it!" still waits in
   Approvals and is awarded the PointPals way when approved.
 - The Notes tab badge now counts notes on the fridge, the same as the home card.
+
+## 24 Nov 2026: habits, Notion to-dos, slideshow button, parent tidy-up
+
+- Habits: SIGNAL's habit library (62 habits with SIGNAL's illustrations) plus
+  the kids' and family picture habits, with search; progress shows tick
+  today, current and best streak, this month, this week's ticks and a
+  4-week tick chart.
+- Home To do now also lists Notion Life Admin tasks that are overdue, due
+  today or undated (every open task, no "Show on hub" needed); ticking one
+  marks it Done in Notion.
+- A slideshow button on the home card starts the photo slideshow; it still
+  starts by itself after the idle time, and a tap goes back home.
+- Guest screen: the Check-out / Sauna, spa & heating / The house / Things to
+  do tiles open those chapters of the house guide; the guide QR comes from the
+  guide. Settings no longer has the guide link and the four text boxes; the
+  Wi-Fi password is hidden; the local jar settings hide when PointPals is
+  connected. Family: the PointPals link is offered for grown-ups too.

@@ -19,9 +19,10 @@ export default function Guest() {
   const weather = useWeather();
   const [wifiQr, setWifiQr] = useState<string>();
   const [guideQr, setGuideQr] = useState<string>();
-  const [open, setOpen] = useState<null | keyof typeof s.houseGuide>(null);
   const [exiting, setExiting] = useState(false);
-  const [reading, setReading] = useState(false);
+  /** Which guide chapter is open ("" = the start), or null when closed. */
+  const [reading, setReading] = useState<string | null>(null);
+  const guideLink = s.guidebookUrl || DEFAULT_GUIDE?.pdfUrl || "";
   const hold = useRef<number | undefined>(undefined);
   const w = weather.data ? describeWeather(weather.data.code, weather.data.isDay) : null;
   const hasPin = !!s.pinHash;
@@ -39,14 +40,15 @@ export default function Guest() {
     const esc = (v: string) => v.replace(/([\\;,:"])/g, "\\$1");
     if (s.wifiName)
       void QRCode.toDataURL(`WIFI:T:WPA;S:${esc(s.wifiName)};P:${esc(s.wifiPassword)};;`, { margin: 1, width: 360, color: { dark: "#23263b", light: "#ffffff" } }).then(setWifiQr);
-    if (s.guidebookUrl) void QRCode.toDataURL(s.guidebookUrl, { margin: 1, width: 360, color: { dark: "#23263b", light: "#ffffff" } }).then(setGuideQr);
-  }, [s.wifiName, s.wifiPassword, s.guidebookUrl]);
+    if (guideLink) void QRCode.toDataURL(guideLink, { margin: 1, width: 360, color: { dark: "#23263b", light: "#ffffff" } }).then(setGuideQr);
+  }, [s.wifiName, s.wifiPassword, guideLink]);
 
+  // Shortcuts straight into the house guide's chapters.
   const sections = [
-    { key: "checkout" as const, title: "Checkout", icon: LogOut },
-    { key: "heating" as const, title: "Heating", icon: Flame },
-    { key: "appliances" as const, title: "Kitchen & appliances", icon: Refrigerator },
-    { key: "local" as const, title: "Local tips", icon: MapPin },
+    { key: "checkout", title: "Check-out", icon: LogOut },
+    { key: "howto", title: "Sauna, spa & heating", icon: Flame },
+    { key: "house", title: "The house", icon: Refrigerator },
+    { key: "explore", title: "Things to do", icon: MapPin },
   ];
 
   return (
@@ -90,7 +92,7 @@ export default function Guest() {
         </motion.div>
         <motion.button
           type="button"
-          onClick={() => setReading(true)}
+          onClick={() => setReading("")}
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.06 }}
@@ -98,7 +100,7 @@ export default function Guest() {
         >
           <p className="text-[3rem] leading-none">📖</p>
           <p className="font-display text-[2.4rem] font-black leading-none">House guidebook</p>
-          {guideQr ? <img src={guideQr} alt="Scan to open the guidebook" className="w-[13rem] rounded-xl" /> : <div className="grid h-[13rem] w-[13rem] place-items-center rounded-xl bg-white/15 text-[1.2rem] font-bold">Add the link in settings</div>}
+          {guideQr ? <img src={guideQr} alt="Scan to open the guidebook" className="w-[13rem] rounded-xl" /> : <div className="grid h-[13rem] w-[13rem] place-items-center rounded-xl bg-white/15 text-[4rem]">📖</div>}
           <span className="rounded-full bg-white px-5 py-2 text-[1.4rem] font-black text-[#5f7a64]">Tap to read it here</span>
           <p className="text-[1.3rem] font-bold opacity-85">or scan with your phone to take it with you</p>
         </motion.button>
@@ -107,7 +109,7 @@ export default function Guest() {
             <motion.button
               key={sec.key}
               type="button"
-              onClick={() => setOpen(sec.key)}
+              onClick={() => setReading(sec.key)}
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 + i * 0.05 }}
@@ -130,10 +132,12 @@ export default function Guest() {
         Owners
       </button>
 
-      <Sheet open={!!open} onOpenChange={(o) => !o && setOpen(null)} title={sections.find((x) => x.key === open)?.title ?? ""}>
-        <p className="whitespace-pre-line text-[1.6rem] font-bold leading-relaxed">{open ? s.houseGuide[open] : ""}</p>
-      </Sheet>
-      {reading && (DEFAULT_GUIDE ? <HouseGuide guide={DEFAULT_GUIDE} onClose={() => setReading(false)} /> : s.guidebookUrl ? <GuideReader url={s.guidebookUrl} onClose={() => setReading(false)} /> : null)}
+      {reading !== null &&
+        (DEFAULT_GUIDE ? (
+          <HouseGuide guide={DEFAULT_GUIDE} startAt={reading || undefined} onClose={() => setReading(null)} />
+        ) : s.guidebookUrl ? (
+          <GuideReader url={s.guidebookUrl} onClose={() => setReading(null)} />
+        ) : null)}
       <Sheet open={exiting} onOpenChange={setExiting} title="Owners only" className="w-[min(36rem,94vw)]">
         <PinPad
           reason="Enter the PIN to leave guest mode"
