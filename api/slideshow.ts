@@ -29,9 +29,12 @@ export async function GET(request: Request): Promise<Response> {
   try {
     const folderId = await family.secret("SLIDESHOW_DRIVE_FOLDER_ID");
     if (!folderId) return json({ error: "No slideshow folder linked yet. Add it in Parent → Connections." }, 503);
+    // Links are signed fresh on every reply, so a cached list never hands out
+    // ones that have already expired.
+    const fresh = (items: SlideItem[]) => items.map((i) => ({ ...i, url: signMediaUrl(i.id, 6 * 3600) }));
     const hit = cache.get(folderId);
     if (hit && Date.now() - hit.at < TTL_MS) {
-      return json({ items: hit.items, fetchedAt: new Date(hit.at).toISOString() });
+      return json({ items: fresh(hit.items), fetchedAt: new Date(hit.at).toISOString() });
     }
 
     const token = await driveToken();
@@ -48,10 +51,10 @@ export async function GET(request: Request): Promise<Response> {
         id: f.id,
         name: f.name,
         kind: f.mimeType.startsWith("video/") ? "video" : "image",
-        url: signMediaUrl(f.id),
+        url: "",
       }));
     cache.set(folderId, { at: Date.now(), items });
-    return json({ items, fetchedAt: new Date().toISOString() });
+    return json({ items: fresh(items), fetchedAt: new Date().toISOString() });
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : "Couldn't read the slideshow folder." }, 502);
   }
