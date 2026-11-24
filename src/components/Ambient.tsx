@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useHub } from "@/lib/store";
 import { useNow } from "@/lib/hooks";
@@ -16,22 +16,28 @@ export function Screensaver({ onWake }: { onWake: () => void }) {
   const slideshow = useSlideshow();
   const now = useNow(15_000);
   const { events } = useCalendar();
-  const next = events.find((e) => eventStart(e) > now);
+  const upcoming = events.find((e) => eventStart(e) > now);
   const [index, setIndex] = useState(0);
   const [url, setUrl] = useState<string>();
+  // Files this screen couldn't show (e.g. an iPhone .mov in Chrome): skipped, and named below.
+  const [failed, setFailed] = useState<Record<string, string>>({});
 
   // Drive photos and videos first, then anything added on this screen.
   const slides = useMemo(() => {
-    const drive = slideshow.items.map((d) => ({ id: d.id, kind: d.kind, mediaId: undefined, url: d.url }));
-    const local = photos.map((p) => ({ id: p.id, kind: p.kind, mediaId: p.mediaId, url: undefined as string | undefined }));
-    return [...drive, ...local];
-  }, [slideshow.items, photos]);
+    const drive = slideshow.items.map((d) => ({ id: d.id, name: d.name, kind: d.kind, mediaId: undefined, url: d.url }));
+    const local = photos.map((p) => ({ id: p.id, name: "", kind: p.kind, mediaId: p.mediaId, url: undefined as string | undefined }));
+    return [...drive, ...local].filter((x) => !failed[x.id]);
+  }, [slideshow.items, photos, failed]);
 
+  const next = useCallback(() => setIndex((i) => (slides.length ? (i + 1) % slides.length : 0)), [slides.length]);
+  const current = slides[index % Math.max(1, slides.length)];
+
+  // Photos stay 9 seconds; a video plays to its end (or 3 minutes at most).
   useEffect(() => {
-    if (!slides.length) return;
-    const t = window.setInterval(() => setIndex((i) => (i + 1) % slides.length), 9000);
-    return () => window.clearInterval(t);
-  }, [slides.length]);
+    if (!current || slides.length < 2) return;
+    const t = window.setTimeout(next, current.kind === "video" ? 180_000 : 9000);
+    return () => window.clearTimeout(t);
+  }, [current, slides.length, next]);
 
   useEffect(() => {
     const s = slides[index % Math.max(1, slides.length)];
@@ -62,7 +68,10 @@ export function Screensaver({ onWake }: { onWake: () => void }) {
               autoPlay
               muted
               playsInline
-              loop
+              loop={slides.length < 2}
+              preload="auto"
+              onEnded={next}
+              onError={() => setFailed((f) => ({ ...f, [photo.id]: photo.name || "a video" }))}
               className="absolute inset-0 size-full object-cover"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -74,6 +83,7 @@ export function Screensaver({ onWake }: { onWake: () => void }) {
               key={photo.id}
               src={url}
               alt=""
+              onError={() => setFailed((f) => ({ ...f, [photo.id]: photo.name || "a photo" }))}
               className="absolute inset-0 size-full object-cover"
               initial={{ opacity: 0, scale: 1.06 }}
               animate={{ opacity: 1, scale: 1.14 }}
@@ -107,14 +117,22 @@ export function Screensaver({ onWake }: { onWake: () => void }) {
       <div className="absolute bottom-[3.5rem] left-[3.5rem] text-white">
         <p className="font-display text-[9rem] font-black leading-[0.9] drop-shadow-lg">{formatTime(now)}</p>
         <p className="mt-2 text-[2rem] font-bold opacity-90">{formatDateLong(now)}</p>
-        {next && (
+        {upcoming && (
           <p className="mt-4 inline-flex items-center gap-3 rounded-full bg-white/20 px-6 py-2 text-[1.6rem] font-bold backdrop-blur">
-            Next: {next.title} · {relativeDayLabel(eventStart(next))}
-            {!next.allDay && ` ${formatTime(eventStart(next))}`}
+            Next: {upcoming.title} · {relativeDayLabel(eventStart(upcoming))}
+            {!upcoming.allDay && ` ${formatTime(eventStart(upcoming))}`}
           </p>
         )}
       </div>
-      <p className="absolute bottom-[3.5rem] right-[3.5rem] text-[1.3rem] font-bold text-white/70">Tap anywhere to wake</p>
+      <div className="absolute bottom-[3.5rem] right-[3.5rem] flex max-w-[40rem] flex-col items-end gap-2 text-right">
+        {Object.keys(failed).length > 0 && (
+          <p className="rounded-[1rem] bg-black/40 px-4 py-2 text-[1.15rem] font-bold text-white/85 backdrop-blur">
+            Couldn't play {Object.values(failed).slice(0, 2).join(", ")}
+            {Object.keys(failed).length > 2 ? ` and ${Object.keys(failed).length - 2} more` : ""} on this screen. MP4 videos and JPG photos work everywhere.
+          </p>
+        )}
+        <p className="text-[1.3rem] font-bold text-white/70">Tap anywhere to wake</p>
+      </div>
     </motion.button>
   );
 }

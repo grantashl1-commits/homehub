@@ -299,3 +299,16 @@ The printable habit worksheet as a game, from each kid's Me page
   device that's signed in to PointPals. Edits rename/re-picture the skill.
   A "Yes!" at dinnertime, or a tick with the parent PIN in, awards 1 marble
   in PointPals, once per habit per day.
+
+## 24 Nov 2026: slideshow videos play on desktop
+
+- The screensaver showed a black screen for a Drive video: /api/slideshow-media
+  sent the whole file in one reply, with no byte ranges. Browsers need ranges
+  for video (Safari won't play without them; Chrome needs them to reach an MP4
+  index at the end), and Vercel caps a function reply at 4.5MB. It now passes
+  Range through to Drive in 4MB chunks and replies 206 with Content-Range.
+- Links are signed fresh on every list (6 hours), so a cached list never hands
+  out expired ones.
+- Videos play to the end before the next slide (loop when it's the only one);
+  photos stay 9 s. A file the screen can't play (e.g. an iPhone .mov in
+  Chrome) is skipped and named in a small note instead of a black screen.
