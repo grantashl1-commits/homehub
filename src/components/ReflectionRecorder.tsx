@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { Mic, Square, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { useHub, activeHabit } from "@/lib/store";
+import { useHub, activeHabits } from "@/lib/store";
 import { dateKey } from "@/lib/time";
 import { sfx } from "@/lib/device";
 import { hubFetch } from "@/lib/integrations/hub-api";
@@ -79,7 +79,7 @@ export function SaveReflection({ t }: { t: Transcriber }) {
   const save = async () => {
     t.stop();
     setBusy(true);
-    const people = members.map((m) => ({ id: m.id, name: m.name, habit: activeHabit(habits, m.id)?.title }));
+    const people = members.map((m) => ({ id: m.id, name: m.name, habit: activeHabits(habits, m.id).map((h) => h.title).join(", ") || undefined }));
     let summary: string | undefined;
     let perPerson: Record<string, string> = {};
     try {

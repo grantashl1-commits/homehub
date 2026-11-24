@@ -134,6 +134,8 @@ export interface KidPlan {
   time?: string;
   endTime?: string;
   location?: string;
+  /** Anything to bring or remember; goes into the Google event's description. */
+  notes?: string;
   voiceMediaId?: string;
   createdBy: string;
   createdAt: number;

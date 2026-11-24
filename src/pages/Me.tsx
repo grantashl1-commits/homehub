@@ -4,7 +4,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { CalendarPlus, Check, Hourglass, ShoppingBasket, Sparkles, StickyNote } from "lucide-react";
 import { toast } from "sonner";
-import { useHub, activeHabit, habitStreak, unreadNotesFor } from "@/lib/store";
+import { useHub, activeHabits, habitStreak, unreadNotesFor } from "@/lib/store";
 import { useChoresFor, useFamilyJar, useMarbles, useMember, useShoppingList, type ChoreView } from "@/lib/hooks";
 import { pal } from "@/lib/pals";
 import { QUICK_GROCERIES } from "@/lib/catalog";
@@ -94,13 +94,13 @@ export function KidZone() {
   const isKid = member.role === "child" || !!(ppSignedIn && member.pointpalsKidId);
 
   return (
-    <div className="grid h-full grid-cols-[minmax(0,0.85fr)_minmax(0,2fr)] gap-[1.3rem]">
+    <div className="grid h-full grid-cols-[minmax(0,0.85fr)_minmax(0,2fr)] gap-[1.3rem] max-md:flex max-md:h-auto max-md:flex-col max-md:gap-3">
       <ProfileCard member={member} />
-      <div className="flex min-h-0 flex-col gap-[1.3rem]">
-        <div className="card flex min-h-0 flex-1 flex-col p-6">
+      <div className="flex min-h-0 flex-col gap-[1.3rem] max-md:gap-3">
+        <div className="card flex min-h-0 flex-1 flex-col p-6 max-md:flex-none max-md:p-3.5">
           {isKid ? <Jobs member={member} /> : <MyNotes member={member} />}
         </div>
-        <div className="grid grid-cols-3 gap-[1.3rem] [&>button]:whitespace-nowrap [&>button]:px-5 [&>button]:text-[1.45rem]">
+        <div className="grid grid-cols-3 gap-[1.3rem] [&>button]:whitespace-nowrap [&>button]:px-5 [&>button]:text-[1.45rem] max-md:gap-2 max-md:[&>button]:flex-col max-md:[&>button]:gap-1 max-md:[&>button]:px-1 max-md:[&>button]:py-2.5 max-md:[&>button]:text-[1.15rem]">
           <BigButton tone="sage" size="lg" icon={<ShoppingBasket className="size-8" />} onClick={() => setListOpen(true)}>
             Add to list
           </BigButton>
@@ -118,12 +118,15 @@ export function KidZone() {
 }
 
 function ProfileCard({ member }: { member: Member }) {
+  const phone = useIsPhone();
   const p = pal(member.palId);
   const marbles = useMarbles(member);
   const habits = useHub((s) => s.habits);
   const checkins = useHub((s) => s.checkins);
-  const habit = activeHabit(habits, member.id);
+  const mine = activeHabits(habits, member.id);
+  const habit = mine[0];
   const today = habit && checkins.find((c) => c.habitId === habit.id && c.date === dateKey());
+  const doneToday = mine.filter((h) => checkins.some((c) => c.habitId === h.id && c.date === dateKey() && c.status === "done")).length;
   const streak = habit ? habitStreak(checkins, habit.id) : 0;
   const members = useHub((s) => s.members);
   const bday = countdowns(members, new Date(), false).find((c) => c.memberId === member.id);
@@ -131,27 +134,30 @@ function ProfileCard({ member }: { member: Member }) {
 
   return (
     <section
-      className="relative flex flex-col items-center overflow-hidden rounded-[2.2rem] p-6 text-center shadow-[var(--shadow-lift)]"
+      className="relative flex flex-col items-center overflow-hidden rounded-[2.2rem] p-6 text-center shadow-[var(--shadow-lift)] max-md:rounded-[1.8rem] max-md:p-3.5"
       style={{ background: `linear-gradient(170deg, ${p.color} 0%, ${p.tint} 55%, #fff 100%)` }}
     >
-      <div className="relative mt-1">
-        <Avatar member={member} size={10} float />
+      {/* Phones: a row with the photo beside the hello, so the jobs sit higher up. */}
+      <div className="flex flex-col items-center max-md:w-full max-md:flex-row max-md:gap-3 max-md:text-left">
+        <div className="relative mt-1 max-md:mt-0 max-md:shrink-0">
+          <Avatar member={member} size={phone ? 6.4 : 10} float={!phone} />
+        </div>
+        <h1 className="mt-2 font-display text-[3.4rem] font-black leading-none max-md:mt-0 max-md:min-w-0 max-md:flex-1" style={{ color: p.ink }}>
+          Hi {member.name}!
+        </h1>
       </div>
-      <h1 className="mt-2 font-display text-[3.4rem] font-black leading-none" style={{ color: p.ink }}>
-        Hi {member.name}!
-      </h1>
       {bday && bday.sleeps <= 60 && (
         <p className="mt-2 rounded-full bg-white/85 px-4 py-1 text-[1.2rem] font-black text-ink">
           🎂 {bday.sleeps === 0 ? "Happy birthday!" : `${sleepsLabel(bday.sleeps)} till your birthday!`}
         </p>
       )}
-      <div className="relative mt-3 flex items-start gap-2 rounded-[1.4rem] bg-white/85 p-3 text-left text-[1.25rem] font-bold text-ink-2 shadow-sm">
+      <div className="relative mt-3 flex w-full items-center gap-2 rounded-[1.4rem] bg-white/85 p-3 text-left text-[1.25rem] font-bold text-ink-2 shadow-sm max-md:mt-2.5 max-md:py-2">
         <span className="min-w-0 flex-1">“{p.quote}”</span>
         <ReadAloud text={hello} size={3.2} />
       </div>
 
       {(member.role === "child" || !!member.pointpalsKidId) && (
-        <div className="mt-4 w-full rounded-[1.4rem] bg-white/85 p-4 text-left">
+        <div className="mt-4 w-full rounded-[1.4rem] bg-white/85 p-4 text-left max-md:mt-2.5 max-md:p-3">
           <p className="text-[1.1rem] font-black uppercase tracking-[0.08em] text-ink-3">My marbles</p>
           <div className="mt-1 flex items-center gap-2">
             <span className="font-display text-[3rem] font-black leading-none">{marbles}</span>
@@ -169,15 +175,21 @@ function ProfileCard({ member }: { member: Member }) {
       <Link
         to={`/habits/${member.id}`}
         onClick={() => sfx.tap()}
-        className="tap mt-3 flex w-full items-center gap-3 rounded-[1.4rem] bg-white p-3 text-left shadow-sm"
+        className="tap mt-3 flex w-full items-center gap-3 rounded-[1.4rem] bg-white p-3 text-left shadow-sm max-md:mt-2.5"
       >
         {habit ? <ChoreIcon icon={habit.icon} size={4} /> : <span className="text-[3rem]">🌱</span>}
         <span className="min-w-0 flex-1">
-          <span className="block text-[1.05rem] font-black uppercase tracking-[0.08em] text-ink-3">My habit</span>
-          <span className="block truncate text-[1.35rem] font-extrabold">{habit?.title ?? "Pick a habit"}</span>
+          <span className="block text-[1.05rem] font-black uppercase tracking-[0.08em] text-ink-3">{mine.length > 1 ? `My ${mine.length} habits` : "My habit"}</span>
+          <span className="block truncate text-[1.35rem] font-extrabold">{habit ? mine.map((h) => h.title).join(" · ") : "Pick a habit"}</span>
           {habit && (
             <span className="block text-[1.1rem] font-bold text-ink-2">
-              {today?.status === "done" ? "✅ Done today" : today?.status === "not_today" ? "☁️ Not today" : "Tonight at dinner"}
+              {mine.length > 1
+                ? `✅ ${doneToday} of ${mine.length} today`
+                : today?.status === "done"
+                  ? "✅ Done today"
+                  : today?.status === "not_today"
+                    ? "☁️ Not today"
+                    : "Tonight at dinner"}
               {streak > 1 && ` · 🔥 ${streak}`}
             </span>
           )}
@@ -272,16 +284,16 @@ function Jobs({ member }: { member: Member }) {
 
   return (
     <>
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="font-display text-[2.6rem] font-black leading-none">My jobs today</h2>
-        <span className="rounded-full bg-sun-tint px-4 py-1 text-[1.25rem] font-black text-[#7a5a0c]">
+      <div className="mb-4 flex items-center justify-between gap-2 max-md:mb-3">
+        <h2 className="font-display text-[2.6rem] font-black leading-none max-md:text-[2rem]">My jobs today</h2>
+        <span className="shrink-0 whitespace-nowrap rounded-full bg-sun-tint px-4 py-1 text-[1.25rem] font-black text-[#7a5a0c] max-md:px-3 max-md:text-[1.1rem]">
           {todo ? `${todo} to go` : "All done! 🌟"}
         </span>
       </div>
       {chores.length === 0 ? (
         <EmptyState emoji="🌈" title="No jobs today" body="Ask a grown-up to add some in PointPals." />
       ) : (
-        <div className="grid min-h-0 flex-1 auto-rows-fr grid-cols-3 gap-4 overflow-y-auto pb-1 no-scrollbar">
+        <div className="grid min-h-0 flex-1 auto-rows-fr grid-cols-3 gap-4 overflow-y-auto pb-1 no-scrollbar max-md:grid-cols-2 max-md:gap-2.5 max-md:overflow-visible">
           {chores.map((c) => (
             <JobCard key={c.id} chore={c} member={member} onDone={() => claim(c)} />
           ))}
@@ -293,36 +305,37 @@ function Jobs({ member }: { member: Member }) {
 
 function JobCard({ chore, member, onDone }: { chore: ChoreView; member: Member; onDone: () => void }) {
   const giving = useParentUnlocked();
+  const phone = useIsPhone();
   const p = pal(member.palId);
   return (
     <motion.div
       layout
       className={cn(
-        "relative flex min-h-[12.5rem] flex-col items-center justify-between gap-2 rounded-[1.8rem] p-4 text-center ring-1 ring-black/5",
+        "relative flex min-h-[12.5rem] flex-col items-center justify-between gap-2 rounded-[1.8rem] p-4 text-center ring-1 ring-black/5 max-md:min-h-0 max-md:rounded-[1.5rem] max-md:p-3",
         chore.state === "done" && "bg-sage-tint",
         chore.state === "pending" && "bg-lilac-tint",
       )}
       style={chore.state === "todo" ? { background: p.tint } : undefined}
     >
       <span className="absolute right-3 top-3 rounded-full bg-white px-2.5 py-0.5 text-[1.1rem] font-black shadow-sm">+{chore.points}</span>
-      <ChoreIcon icon={chore.icon} size={5.4} />
-      <p className="text-[1.35rem] font-extrabold leading-tight">{chore.name}</p>
+      <ChoreIcon icon={chore.icon} size={phone ? 4.4 : 5.4} />
+      <p className="text-[1.35rem] font-extrabold leading-tight max-md:text-[1.3rem]">{chore.name}</p>
       <AnimatePresence mode="wait" initial={false}>
         {chore.state === "todo" && (
           <motion.button
             key="todo"
             type="button"
             onClick={onDone}
-            className="tap flex min-h-[3.8rem] w-full items-center justify-center gap-2 rounded-[1.2rem] bg-sage text-[1.35rem] font-black text-white shadow-[0_8px_20px_-10px_rgb(111_183_132/0.9)]"
+            className="tap flex min-h-[3.8rem] w-full items-center justify-center gap-2 whitespace-nowrap rounded-[1.2rem] bg-sage px-2 text-[1.35rem] font-black text-white shadow-[0_8px_20px_-10px_rgb(111_183_132/0.9)] max-md:gap-1 max-md:text-[1.2rem]"
             exit={{ rotateX: 90, opacity: 0 }}
           >
-            <Sparkles className="size-6" /> {giving ? `Give +${chore.points}` : "I did it!"}
+            <Sparkles className="size-6 shrink-0 max-md:size-5" /> {giving ? `Give +${chore.points}` : "I did it!"}
           </motion.button>
         )}
         {chore.state === "pending" && (
           <motion.div
             key="pending"
-            className="flex min-h-[3.8rem] w-full items-center justify-center gap-2 rounded-[1.2rem] bg-white/80 text-[1.15rem] font-black text-lilac-ink"
+            className="flex min-h-[3.8rem] w-full items-center justify-center gap-2 rounded-[1.2rem] bg-white/80 px-1 text-[1.15rem] font-black leading-tight text-lilac-ink max-md:text-[1rem]"
             initial={{ rotateX: -90, opacity: 0 }}
             animate={{ rotateX: 0, opacity: 1 }}
           >
@@ -349,8 +362,8 @@ function MyNotes({ member }: { member: Member }) {
   const claims = useHub(useShallow((s) => s.claims.filter((c) => c.status === "pending")));
   return (
     <>
-      <h2 className="mb-4 font-display text-[2.6rem] font-black leading-none">For {member.name}</h2>
-      <div className="grid grid-cols-2 gap-4">
+      <h2 className="mb-4 font-display text-[2.6rem] font-black leading-none max-md:mb-3 max-md:text-[2rem]">For {member.name}</h2>
+      <div className="grid grid-cols-2 gap-4 max-md:gap-2.5">
         <Link to="/notes" className="tap rounded-[1.6rem] bg-lilac-tint p-5">
           <p className="text-[3rem] leading-none">💌</p>
           <p className="mt-2 font-display text-[2.4rem] font-black leading-none">{notes.length} notes</p>
@@ -380,7 +393,7 @@ function KidListSheet({ open, onOpenChange, member, tint }: { open: boolean; onO
   };
   return (
     <Sheet open={open} onOpenChange={onOpenChange} title="What do we need?" wide>
-      <div className="grid grid-cols-6 gap-3">
+      <div className="grid grid-cols-6 gap-3 max-md:grid-cols-3 max-md:gap-2">
         {QUICK_GROCERIES.map((g) => (
           <button
             key={g.name}
