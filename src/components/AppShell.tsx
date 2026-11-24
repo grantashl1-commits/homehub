@@ -61,18 +61,18 @@ function TopBar() {
   return (
     <header className="flex h-[5.4rem] shrink-0 items-center justify-between gap-2 px-[2.2rem] pt-[env(safe-area-inset-top)] max-md:h-[4.6rem] max-md:px-3">
       <div className="flex min-w-0 items-center gap-3">
-        <div className="grid size-[3.4rem] shrink-0 place-items-center rounded-[1.1rem] bg-coral text-white shadow-[var(--shadow-glow)]">
+        <div className="grid size-[3.4rem] shrink-0 max-md:size-[2.8rem] place-items-center rounded-[1.1rem] bg-coral text-white shadow-[var(--shadow-glow)]">
           <Home className="size-7" strokeWidth={2.6} />
         </div>
         <div className="min-w-0 leading-none">
           <p className="truncate font-display text-[2.1rem] font-black max-md:text-[1.7rem]">{familyName}</p>
-          <p className="text-[1.05rem] font-bold uppercase tracking-[0.12em] text-ink-3">Home Hub</p>
+          <p className="text-[1.05rem] font-bold uppercase tracking-[0.12em] text-ink-3 max-md:hidden">Home Hub</p>
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-3 max-md:gap-1.5">
         {w && weather.data && (
           <div className="flex items-center gap-2 rounded-full bg-white/80 py-1.5 pl-2.5 pr-5 ring-1 ring-black/5 max-md:pr-3">
-            <span className="text-[2rem] leading-none">{w.emoji}</span>
+            <span className="text-[2rem] leading-none max-md:text-[1.5rem]">{w.emoji}</span>
             <span className="text-[1.45rem] font-extrabold">{weather.data.temp}°</span>
             <span className="text-[1.2rem] font-bold text-ink-2 max-md:hidden">Taupō</span>
           </div>

@@ -17,6 +17,7 @@ import { celebrate } from "@/components/Celebrate";
 import { MarbleJar } from "@/components/MarbleJar";
 import { BigButton, ChoreIcon, EmptyState, ReadAloud, Sheet } from "@/components/ui";
 import { cn } from "@/lib/utils";
+import { useIsPhone } from "@/lib/useIsPhone";
 import { pointpalsAward, usePointPals } from "@/lib/integrations/pointpals";
 import { useParentUnlocked } from "@/components/PinPad";
 
@@ -24,12 +25,13 @@ export function MePicker() {
   const members = useHub((s) => s.members);
   const ordered = [...members.filter((m) => m.role === "child"), ...members.filter((m) => m.role === "parent")];
   const jar = useFamilyJar();
+  const phone = useIsPhone();
   return (
     <div className="flex h-full flex-col">
-      <div className="mb-5 flex items-end justify-between">
+      <div className="mb-5 flex items-end justify-between gap-3 max-md:mb-3 max-md:items-center">
         <h1 className="font-display text-[3.6rem] font-black leading-none">Who's this? 👋</h1>
-        <div className="flex items-center gap-4 rounded-[1.6rem] bg-white px-5 py-3 shadow-[var(--shadow-soft)]">
-          <MarbleJar count={jar.count} target={jar.target} size={5} />
+        <div className="flex items-center gap-4 rounded-[1.6rem] bg-white px-5 py-3 shadow-[var(--shadow-soft)] max-md:gap-2 max-md:px-3 max-md:py-2">
+          <MarbleJar count={jar.count} target={jar.target} size={phone ? 3.4 : 5} />
           <div>
             <p className="font-display text-[2rem] font-black leading-none">
               {jar.count}/{jar.target}
@@ -38,7 +40,7 @@ export function MePicker() {
           </div>
         </div>
       </div>
-      <div className="grid min-h-0 flex-1 grid-cols-4 gap-[1.3rem]">
+      <div className="grid min-h-0 flex-1 grid-cols-4 gap-[1.3rem] max-md:grid-cols-2 max-md:gap-3">
         {ordered.map((m, i) => (
           <PersonCard key={m.id} member={m} index={i} />
         ))}
@@ -48,6 +50,7 @@ export function MePicker() {
 }
 
 function PersonCard({ member, index }: { member: Member; index: number }) {
+  const phone = useIsPhone();
   const p = pal(member.palId);
   const marbles = useMarbles(member);
   const notes = useHub((s) => s.notes);
@@ -59,12 +62,12 @@ function PersonCard({ member, index }: { member: Member; index: number }) {
       <Link
         to={`/me/${member.id}`}
         onClick={() => sfx.pop()}
-        className="tap relative flex h-full flex-col items-center justify-center gap-3 overflow-hidden rounded-[2.2rem] p-5 text-center shadow-[var(--shadow-soft)]"
+        className="tap relative flex h-full flex-col items-center justify-center gap-3 overflow-hidden rounded-[2.2rem] p-5 text-center shadow-[var(--shadow-soft)] max-md:gap-2 max-md:p-3"
         style={{ background: `linear-gradient(170deg, ${p.tint} 0%, #fff 70%)` }}
       >
         <div className="absolute inset-x-0 top-0 h-[55%] opacity-60" style={{ background: `radial-gradient(70% 90% at 50% 0%, ${p.color} 0%, transparent 70%)` }} />
-        <Avatar member={member} size={9.5} float />
-        <p className="relative font-display text-[3rem] font-black leading-none" style={{ color: p.ink }}>
+        <Avatar member={member} size={phone ? 6.4 : 9.5} float />
+        <p className="relative font-display text-[3rem] font-black leading-none max-md:text-[2.1rem]" style={{ color: p.ink }}>
           {member.name}
         </p>
         <div className="relative flex flex-wrap justify-center gap-2">

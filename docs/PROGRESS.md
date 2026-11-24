@@ -210,3 +210,22 @@ Verified at 1180×820 (iPad), 1366×768 (Chromebook) and 1920×1080 (wall).
   guide. Settings no longer has the guide link and the four text boxes; the
   Wi-Fi password is hidden; the local jar settings hide when PointPals is
   connected. Family: the PointPals link is offered for grown-ups too.
+
+## 24 Nov 2026: phone layouts for every page
+
+Mobile patterns from Ionic / Framework7 (the most-starred PWA UI kits):
+toolbar-sized page titles, controls on their own row, list and card layouts
+instead of squeezed columns, swipe-and-snap columns, and a floating action
+button in the corner above the tab bar. Phone-only (max-md); the bench and
+wall layouts are unchanged.
+
+- Phone base text drops to 13px root (body ≈19px, 3.4rem targets still 44px).
+- Top bar: the family name has room; the small "Home Hub" line hides.
+- Me: 2×2 cards with smaller faces; the jar sits beside the title.
+- Meals: full-width tonight card, then the week as a two-column list.
+- Calendar: controls wrap under the title (Snap becomes an icon), te reo day
+  names hide in the day strip, and the people columns swipe one per screen.
+- Notes: two columns, readable note text, a compact "+ Note" button above
+  the nav, and the filter row scrolls sideways.
+- List: the page scrolls instead of an inner box; names no longer truncate.
+- Checked at iPhone 13 size: no page scrolls sideways.

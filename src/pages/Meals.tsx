@@ -28,15 +28,15 @@ export default function Meals() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="mb-4 flex items-center justify-between gap-4">
+      <div className="mb-4 flex items-center justify-between gap-4 max-md:mb-3 max-md:flex-col max-md:items-stretch max-md:gap-2">
         <h1 className="font-display text-[3.4rem] font-black leading-none">What's for dinner 🍽️</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 max-md:justify-between">
           <SourceBadge source={source === "signal" ? "signal" : source === "sample" ? "sample" : "local"} />
           <div className="flex items-center gap-1 rounded-full bg-white p-1.5 shadow-[var(--shadow-soft)]">
             <button type="button" aria-label="Last week" onClick={() => setWeekOffset((w) => w - 1)} className="tap grid size-[3.4rem] place-items-center rounded-full hover:bg-black/5">
               <ChevronLeft className="size-7" />
             </button>
-            <span className="min-w-[11rem] text-center text-[1.3rem] font-black">
+            <span className="min-w-[11rem] text-center text-[1.3rem] font-black max-md:min-w-[8rem]">
               {weekOffset === 0 ? "This week" : `${formatDateShort(weekStart)} – ${formatDateShort(addDays(weekStart, 6))}`}
             </span>
             <button type="button" aria-label="Next week" onClick={() => setWeekOffset((w) => w + 1)} className="tap grid size-[3.4rem] place-items-center rounded-full hover:bg-black/5">
@@ -46,9 +46,9 @@ export default function Meals() {
         </div>
       </div>
 
-      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1.15fr)_minmax(0,1.85fr)] gap-[1.3rem]">
+      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1.15fr)_minmax(0,1.85fr)] gap-[1.3rem] max-md:flex max-md:flex-col max-md:gap-3">
         {feature && <FeatureCard day={feature} isToday={feature.key === today} onOpen={() => setOpen(feature)} />}
-        <div className="grid min-h-0 grid-cols-3 grid-rows-2 gap-[1.3rem]">
+        <div className="grid min-h-0 grid-cols-3 grid-rows-2 gap-[1.3rem] max-md:grid-cols-2 max-md:grid-rows-none max-md:gap-3">
           {rest.map((d, i) => (
             <DayCard key={d.key} day={d} index={i} onOpen={() => setOpen(d)} />
           ))}
@@ -94,7 +94,7 @@ function FeatureCard({ day, isToday, onOpen }: { day: DayMeal; isToday: boolean;
       }}
       initial={{ opacity: 0, scale: 0.97 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="tap relative overflow-hidden rounded-[2.2rem] bg-peach-tint text-left shadow-[var(--shadow-lift)]"
+      className="tap relative overflow-hidden rounded-[2.2rem] bg-peach-tint text-left shadow-[var(--shadow-lift)] max-md:min-h-[22rem]"
     >
       <Photo recipe={day.dinner} className="absolute inset-0 size-full" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
@@ -103,7 +103,7 @@ function FeatureCard({ day, isToday, onOpen }: { day: DayMeal; isToday: boolean;
         <Hearts day={day} />
       </div>
       <div className="absolute inset-x-0 bottom-0 p-6 text-white">
-        <p className="font-display text-[3.4rem] font-black leading-[0.95]">{day.dinner?.name ?? "Nothing planned yet"}</p>
+        <p className="font-display text-[3.4rem] font-black leading-[0.95] max-md:text-[2.2rem]">{day.dinner?.name ?? "Nothing planned yet"}</p>
         <div className="mt-3 flex flex-wrap gap-2 text-[1.2rem] font-extrabold">
           {day.dinner?.time && (
             <span className="flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 backdrop-blur">
@@ -134,7 +134,7 @@ function DayCard({ day, index, onOpen }: { day: DayMeal; index: number; onOpen: 
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.04 }}
-      className={cn("tap card flex min-h-0 flex-col overflow-hidden text-left", past && "opacity-55")}
+      className={cn("tap card flex min-h-0 flex-col overflow-hidden text-left max-md:min-h-[14rem]", past && "opacity-55")}
     >
       <div className="relative min-h-0 flex-1">
         <Photo recipe={day.dinner} className="absolute inset-0 size-full" />
