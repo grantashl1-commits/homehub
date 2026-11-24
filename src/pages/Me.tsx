@@ -2,13 +2,12 @@ import { useShallow } from "zustand/react/shallow";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
-import { CalendarPlus, Check, Hourglass, ShoppingBasket, Sparkles, StickyNote } from "lucide-react";
+import { Check, Hourglass, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useHub, unreadNotesFor } from "@/lib/store";
-import { useChoresFor, useFamilyJar, useMarbles, useMember, useShoppingList, type ChoreView } from "@/lib/hooks";
+import { useChoresFor, useFamilyJar, useMarbles, useMember, type ChoreView } from "@/lib/hooks";
 import { pal } from "@/lib/pals";
-import { QUICK_GROCERIES } from "@/lib/catalog";
-import { canListen, listenOnce, sfx } from "@/lib/device";
+import { sfx } from "@/lib/device";
 import { greeting } from "@/lib/time";
 import { countdowns, praise, sleepsLabel } from "@/lib/nz";
 import type { Member } from "@/lib/types";
@@ -87,10 +86,8 @@ export function KidZone() {
   const { id } = useParams();
   const member = useMember(id);
   const navigate = useNavigate();
-  const [listOpen, setListOpen] = useState(false);
   const ppSignedIn = usePointPals((s) => !!s.userId);
   if (!member) return <EmptyState emoji="🤔" title="Who's that?" action={<BigButton onClick={() => navigate("/me")}>Pick someone</BigButton>} />;
-  const p = pal(member.palId);
   // Kids, and anyone PointPals counts as an earner (Mum and Dad can earn too).
   const isKid = member.role === "child" || !!(ppSignedIn && member.pointpalsKidId);
 
@@ -103,24 +100,7 @@ export function KidZone() {
         <div className="card flex min-h-0 flex-1 flex-col p-6 max-md:flex-none max-md:p-3.5 md:min-h-[19rem] md:p-5">
           {isKid ? <Jobs member={member} /> : <MyNotes member={member} />}
         </div>
-        <div className={cn("grid shrink-0 gap-[1.3rem] [&>button]:whitespace-nowrap [&>button]:px-5 [&>button]:text-[1.45rem] max-md:gap-2 max-md:[&>button]:flex-col max-md:[&>button]:gap-1 max-md:[&>button]:px-1 max-md:[&>button]:py-2.5 max-md:[&>button]:text-[1.15rem]", member.role === "child" ? "grid-cols-4 max-md:grid-cols-3 md:[&>button]:whitespace-normal md:[&>button]:text-center md:[&>button]:flex-col md:[&>button]:gap-1 md:[&>button]:px-2 md:[&>button]:py-2 md:[&>button]:text-[1.3rem]" : "grid-cols-3")}>
-          <BigButton tone="sage" size="lg" icon={<ShoppingBasket className="size-8" />} onClick={() => setListOpen(true)}>
-            Add to list
-          </BigButton>
-          <BigButton tone="sky" size="lg" icon={<CalendarPlus className="size-8" />} onClick={() => navigate(`/calendar?add=1&who=${member.id}`)}>
-            Add event
-          </BigButton>
-          <BigButton tone="lilac" size="lg" icon={<StickyNote className="size-8" />} onClick={() => navigate(`/notes?add=1&from=${member.id}`)}>
-            Write a note
-          </BigButton>
-          {member.role === "child" && (
-            <BigButton tone="coral" size="lg" className="max-md:hidden" icon={<span className="text-[2.2rem] leading-none">🗺️</span>} onClick={() => navigate(`/me/${member.id}/adventure`)}>
-              Habit Adventure
-            </BigButton>
-          )}
-        </div>
       </div>
-      <KidListSheet open={listOpen} onOpenChange={setListOpen} member={member} tint={p.tint} />
     </div>
   );
 }
@@ -173,21 +153,6 @@ function ProfileCard({ member }: { member: Member }) {
 
       <MyReflections member={member} />
 
-      {member.role === "child" && (
-        <Link
-          to={`/me/${member.id}/adventure`}
-          onClick={() => sfx.pop()}
-          className="tap mt-3 flex w-full items-center gap-3 rounded-[1.4rem] p-3 text-left text-white shadow-[var(--shadow-soft)] max-md:mt-2.5 md:hidden"
-          style={{ background: `linear-gradient(120deg, ${p.shade}, #EE7B5B)` }}
-        >
-          <span className="text-[3rem] leading-none">🗺️</span>
-          <span className="min-w-0 flex-1">
-            <span className="block font-display text-[1.8rem] font-black leading-none">Habit Adventure</span>
-            <span className="block text-[1.1rem] font-bold opacity-90">Games, colouring and a new habit to try</span>
-          </span>
-          <span className="text-[2rem] leading-none">▶</span>
-        </Link>
-      )}
     </section>
   );
 }
@@ -377,54 +342,5 @@ function MyNotes({ member }: { member: Member }) {
         </Link>
       </div>
     </>
-  );
-}
-
-function KidListSheet({ open, onOpenChange, member, tint }: { open: boolean; onOpenChange: (o: boolean) => void; member: Member; tint: string }) {
-  const { add } = useShoppingList();
-  const [listening, setListening] = useState(false);
-  const addItem = async (name: string, category?: string) => {
-    sfx.pop();
-    try {
-      await add(name, { category, by: member.id });
-      toast.success(`${name} is on the list!`);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't add that");
-    }
-  };
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange} title="What do we need?" wide>
-      <div className="grid grid-cols-6 gap-3 max-md:grid-cols-3 max-md:gap-2">
-        {QUICK_GROCERIES.map((g) => (
-          <button
-            key={g.name}
-            type="button"
-            onClick={() => void addItem(g.name, g.category)}
-            className="tap flex aspect-square flex-col items-center justify-center gap-1 rounded-[1.4rem] ring-1 ring-black/5"
-            style={{ background: tint }}
-          >
-            <span className="text-[3.4rem] leading-none">{g.emoji}</span>
-            <span className="text-[1.15rem] font-extrabold">{g.name}</span>
-          </button>
-        ))}
-      </div>
-      {canListen() && (
-        <div className="mt-5 flex justify-center">
-          <BigButton
-            tone={listening ? "coral" : "ink"}
-            size="lg"
-            onClick={async () => {
-              setListening(true);
-              const said = await listenOnce().promise;
-              setListening(false);
-              if (said) void addItem(said.replace(/^./, (c) => c.toUpperCase()));
-              else toast("I didn't catch that. Try again?");
-            }}
-          >
-            🎤 {listening ? "Listening…" : "Say it instead"}
-          </BigButton>
-        </div>
-      )}
-    </Sheet>
   );
 }

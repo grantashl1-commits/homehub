@@ -3,12 +3,13 @@
  * Sunday ticks (from dinnertime reflection or the habits page) and how close
  * they are to the week's goal. A met goal turns gold with a trophy.
  */
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "motion/react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Plus } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
-import { useHub } from "@/lib/store";
+import { useHub, MAX_HABITS } from "@/lib/store";
+import { HabitSheet } from "@/pages/Habits";
 import { pal } from "@/lib/pals";
 import { dateKey } from "@/lib/time";
 import { sfx } from "@/lib/device";
@@ -22,30 +23,44 @@ const DAYS = ["M", "T", "W", "T", "F", "S", "S"];
 
 export function HabitTracker({ member }: { member: Member }) {
   const habits = useHub(useShallow((s) => s.habits.filter((h) => h.memberId === member.id && h.active) ?? NO_HABITS));
-  const kid = member.role === "child";
+  const [adding, setAdding] = useState(false);
+  const full = habits.length >= MAX_HABITS;
+  const add = () => {
+    sfx.tap();
+    setAdding(true);
+  };
+  // The same sheet as the habits page: write your own (with ✨ Make a picture
+  // from PointPals) or pick from the libraries. New habits sync to PointPals.
+  const sheet = <HabitSheet open={adding} onOpenChange={setAdding} member={member} />;
 
   if (!habits.length) {
     return (
-      <Link
-        to={kid ? `/me/${member.id}/adventure` : `/habits/${member.id}`}
-        onClick={() => sfx.tap()}
-        className="tap card flex items-center gap-3 p-4 max-md:p-3"
-      >
-        <span className="text-[3.2rem] leading-none">🌱</span>
-        <span className="min-w-0 flex-1">
-          <span className="block font-display text-[1.9rem] font-black leading-none">No habit yet</span>
-          <span className="block text-[1.2rem] font-bold text-ink-2">{kid ? "Play Habit Adventure to pick one!" : "Pick one to work on"}</span>
-        </span>
-        <ChevronRight className="size-7 text-ink-3" />
-      </Link>
+      <>
+        <button type="button" onClick={add} className="tap card flex shrink-0 items-center gap-3 p-4 text-left max-md:p-3">
+          <span className="text-[3.2rem] leading-none">🌱</span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-display text-[1.9rem] font-black leading-none">No habit yet</span>
+            <span className="block text-[1.2rem] font-bold text-ink-2">Tap to add one: write your own or pick a picture habit</span>
+          </span>
+          <span className="flex h-[4.4rem] shrink-0 items-center gap-1.5 rounded-full bg-ink px-4 text-[1.2rem] font-black text-white">
+            <Plus className="size-5" strokeWidth={3} /> Add habit
+          </span>
+        </button>
+        {sheet}
+      </>
     );
   }
 
   return (
     <section className="card flex shrink-0 flex-col gap-2 p-3.5 max-md:p-3">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="font-display text-[1.9rem] font-black leading-none max-md:text-[1.8rem]">My habits this week</h2>
-        <Link to={`/habits/${member.id}`} onClick={() => sfx.tap()} className="tap flex shrink-0 items-center gap-1 rounded-full bg-paper px-3 py-1.5 text-[1.1rem] font-black text-ink-2">
+        <h2 className="min-w-0 flex-1 font-display text-[1.9rem] font-black leading-none max-md:text-[1.8rem]">My habits this week</h2>
+        {!full && (
+          <button type="button" onClick={add} className="tap flex h-[3.6rem] shrink-0 items-center gap-1 rounded-full bg-ink px-3.5 text-[1.1rem] font-black text-white">
+            <Plus className="size-4" strokeWidth={3} /> Add habit
+          </button>
+        )}
+        <Link to={`/habits/${member.id}`} onClick={() => sfx.tap()} className="tap flex h-[3.6rem] shrink-0 items-center gap-1 rounded-full bg-paper px-3 text-[1.1rem] font-black text-ink-2">
           See all <ChevronRight className="size-4" />
         </Link>
       </div>
@@ -54,6 +69,7 @@ export function HabitTracker({ member }: { member: Member }) {
           <HabitWeek key={h.id} habit={h} member={member} />
         ))}
       </div>
+      {sheet}
     </section>
   );
 }

@@ -407,8 +407,8 @@ function FrequencyPicker({ value, onChange }: { value: HabitFrequency; onChange:
   );
 }
 
-/** Add a habit (from the libraries or your own), or edit one. */
-function HabitSheet({ open, onOpenChange, member, editing }: { open: boolean; onOpenChange: (o: boolean) => void; member: Member; editing?: Habit }) {
+/** Add a habit (from the libraries or your own), or edit one. Also used from the Me page. */
+export function HabitSheet({ open, onOpenChange, member, editing }: { open: boolean; onOpenChange: (o: boolean) => void; member: Member; editing?: Habit }) {
   const addHabit = useHub((s) => s.addHabit);
   const updateHabit = useHub((s) => s.updateHabit);
   const stopHabit = useHub((s) => s.stopHabit);
@@ -432,7 +432,7 @@ function HabitSheet({ open, onOpenChange, member, editing }: { open: boolean; on
       setTitle("");
       setIcon("⭐");
       setFreq({ kind: "daily" });
-      setTab(member.role === "child" ? "kids" : "own");
+      setTab("own");
     }
   }, [open, editing, member.role]);
 

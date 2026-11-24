@@ -323,3 +323,13 @@ The printable habit worksheet as a game, from each kid's Me page
   turn gold with "🏆 Goal!" when the week's goal is met.
 - The add-habit library tabs start with "Not here? Write your own", which
   leads to the name, emoji and ✨ Make a picture.
+
+## 24 Nov 2026: Me page tidy, add habits from the Me page
+
+- Removed the Add to list / Add event / Write a note / Habit Adventure buttons
+  from Me pages (the bottom nav covers list, calendar and notes), and the
+  Habit Adventure game itself (the family has finished with it).
+- "My habits this week" has "+ Add habit", opening the same sheet as the
+  habits page. It now opens on Make your own for everyone: name, how often,
+  emoji or ✨ Make a picture (PointPals' generator), and the habit syncs to
+  PointPals as that child's skill.
