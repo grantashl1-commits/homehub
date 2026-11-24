@@ -283,3 +283,19 @@ The printable habit worksheet as a game, from each kid's Me page
 3. Pick a habit (the loved ones first), when you'll do it, then press and
    hold the hand to make a high-five promise. That adds the habit, so it
    comes up at dinnertime reflection and on the habits page.
+
+## 24 Nov 2026: habit tracker on Me pages, AI habit pictures, PointPals sync
+
+- Me pages show "My habits this week": each habit with Monday to Sunday ticks
+  (from dinnertime reflection or the habits page), x/goal for the week, and a
+  gold "🏆 Goal!" card once the weekly goal is met. No habit yet: a link to
+  Habit Adventure (kids) or the habits page.
+- Make your own habit → "✨ Make a picture" draws an icon with PointPals' own
+  generator (its `generate-icon` edge function: Gemini, PointPals house style,
+  white knocked out). The icon also lands in the PointPals icon library.
+  PointPals allows 10 a month per household.
+- PointPals sync: every active habit of a PointPals-linked person becomes a
+  positive skill assigned to that child (same name reused), from any screen or
+  device that's signed in to PointPals. Edits rename/re-picture the skill.
+  A "Yes!" at dinnertime, or a tick with the parent PIN in, awards 1 marble
+  in PointPals, once per habit per day.
