@@ -29,6 +29,7 @@ import { celebrate } from "@/components/Celebrate";
 import { cn } from "@/lib/utils";
 import { useIsPhone } from "@/lib/useIsPhone";
 import { useParentUnlocked } from "@/components/PinPad";
+import { GOAL_BG, GOAL_RING, WeekDots } from "@/components/HabitTracker";
 import { pointpalsAwardHabit, pointpalsGenerateIcon, pointpalsUpdateSkill, usePointPals } from "@/lib/integrations/pointpals";
 
 type Tab = "own" | "kids" | "grownups" | HabitGroup;
@@ -235,14 +236,14 @@ function HabitCard({ habit, member, open, onSelect }: { habit: Habit; member: Me
   const { doneToday, tick } = useTick(habit, member);
   const stats = useMemo(() => habitStats(habit, checkins), [habit, checkins]);
   const week = useMemo(() => weekProgress(habit, checkins), [habit, checkins]);
-  const today = dateKey();
   const resting = !habitDueOn(habit);
+  const won = week.done >= week.goal;
 
   return (
     <motion.div
       layout="position"
-      className={cn("flex items-center gap-3 rounded-[1.8rem] bg-white p-3.5 shadow-[var(--shadow-soft)] ring-1 ring-black/5", open && "ring-[0.25rem]")}
-      style={open ? ({ "--tw-ring-color": p.shade } as React.CSSProperties) : undefined}
+      className={cn("flex items-center gap-3 rounded-[1.8rem] bg-white p-3.5 shadow-[var(--shadow-soft)] ring-1 ring-black/5", won && GOAL_RING, open && "ring-[0.25rem]")}
+      style={{ ...(won ? GOAL_BG : {}), ...(open ? ({ "--tw-ring-color": p.shade } as React.CSSProperties) : {}) }}
     >
       <button type="button" onClick={onSelect} className="flex min-w-0 flex-1 items-center gap-3 text-left" aria-expanded={open}>
         <ChoreIcon icon={habit.icon} size={5.4} className="shrink-0" />
@@ -250,22 +251,11 @@ function HabitCard({ habit, member, open, onSelect }: { habit: Habit; member: Me
           <span className="block font-display text-[1.8rem] font-black leading-[1.05]">{habit.title}</span>
           <span className="mt-0.5 flex flex-wrap items-center gap-x-2.5 text-[1.05rem] font-bold text-ink-2 [&>span+span]:before:mr-2.5 [&>span+span]:before:text-ink-3 [&>span+span]:before:content-['·']">
             <span>{frequencyLabel(habit.frequency)}</span>
-            <span>
-              {week.done}/{week.goal} this week
-            </span>
+            <span className={cn(won && "font-black text-[#7a5a0c]")}>{won ? `🏆 Goal! ${week.done}/${week.goal}` : `${week.done}/${week.goal} this week`}</span>
             {stats.streak > 1 && <span className="text-coral-ink">🔥 {stats.streak}</span>}
           </span>
           {/* This week, Monday to Sunday */}
-          <span className="mt-1.5 flex gap-1">
-            {stats.weeks[3].map((d) => (
-              <span
-                key={d.key}
-                title={formatDayShort(fromDateKey(d.key))}
-                className={cn("size-[1.35rem] rounded-full", MARK_STYLE[d.mark], d.key === today && d.mark !== "done" && "ring-2 ring-coral")}
-                style={d.mark === "done" ? { background: p.shade } : undefined}
-              />
-            ))}
-          </span>
+          <WeekDots habit={habit} member={member} className="mt-1.5 max-w-[24rem]" />
         </span>
         <ChevronDown className={cn("size-6 shrink-0 text-ink-3 transition-transform md:hidden", open && "rotate-180")} />
       </button>
@@ -599,6 +589,17 @@ function HabitSheet({ open, onOpenChange, member, editing }: { open: boolean; on
         </div>
       ) : (
         <>
+          <button
+            type="button"
+            onClick={() => (sfx.tap(), setTab("own"))}
+            className="tap mb-3 flex w-full items-center gap-3 rounded-[1.4rem] border-2 border-dashed border-lilac bg-lilac-tint/60 p-3 text-left"
+          >
+            <span className="text-[2.4rem] leading-none">✨</span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[1.35rem] font-black">Not here? Write your own</span>
+              <span className="block text-[1.1rem] font-bold text-ink-2">Name it, pick an emoji or make a picture for it</span>
+            </span>
+          </button>
           <div className="relative mb-3">
             <Search className="absolute left-4 top-1/2 size-5 -translate-y-1/2 text-ink-3" />
             <input

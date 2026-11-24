@@ -97,12 +97,13 @@ export function KidZone() {
   return (
     <div className="grid h-full grid-cols-[minmax(0,0.85fr)_minmax(0,2fr)] gap-[1.3rem] max-md:flex max-md:h-auto max-md:flex-col max-md:gap-3">
       <ProfileCard member={member} />
-      <div className="flex min-h-0 flex-col gap-[1.3rem] max-md:gap-3">
+      {/* Short landscape screens (an 11" tablet in Chrome) scroll this side rather than squash the jobs. */}
+      <div className="flex min-h-0 flex-col gap-[1.3rem] no-scrollbar max-md:gap-3 md:overflow-y-auto">
         <HabitTracker member={member} />
-        <div className="card flex min-h-0 flex-1 flex-col p-6 max-md:flex-none max-md:p-3.5">
+        <div className="card flex min-h-0 flex-1 flex-col p-6 max-md:flex-none max-md:p-3.5 md:min-h-[19rem] md:p-5">
           {isKid ? <Jobs member={member} /> : <MyNotes member={member} />}
         </div>
-        <div className={cn("grid gap-[1.3rem] [&>button]:whitespace-nowrap [&>button]:px-5 [&>button]:text-[1.45rem] max-md:gap-2 max-md:[&>button]:flex-col max-md:[&>button]:gap-1 max-md:[&>button]:px-1 max-md:[&>button]:py-2.5 max-md:[&>button]:text-[1.15rem]", member.role === "child" ? "grid-cols-4 max-md:grid-cols-3 md:[&>button]:flex-col md:[&>button]:gap-1 md:[&>button]:px-2 md:[&>button]:py-2 md:[&>button]:text-[1.3rem]" : "grid-cols-3")}>
+        <div className={cn("grid shrink-0 gap-[1.3rem] [&>button]:whitespace-nowrap [&>button]:px-5 [&>button]:text-[1.45rem] max-md:gap-2 max-md:[&>button]:flex-col max-md:[&>button]:gap-1 max-md:[&>button]:px-1 max-md:[&>button]:py-2.5 max-md:[&>button]:text-[1.15rem]", member.role === "child" ? "grid-cols-4 max-md:grid-cols-3 md:[&>button]:whitespace-normal md:[&>button]:text-center md:[&>button]:flex-col md:[&>button]:gap-1 md:[&>button]:px-2 md:[&>button]:py-2 md:[&>button]:text-[1.3rem]" : "grid-cols-3")}>
           <BigButton tone="sage" size="lg" icon={<ShoppingBasket className="size-8" />} onClick={() => setListOpen(true)}>
             Add to list
           </BigButton>
