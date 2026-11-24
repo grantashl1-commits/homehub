@@ -52,6 +52,8 @@ export interface Habit {
   frequency: HabitFrequency;
   startDate: string;
   active: boolean;
+  /** The PointPals skill this habit is saved as, once synced. */
+  pointpalsSkillId?: string;
 }
 
 export type CheckInStatus = "done" | "not_today";

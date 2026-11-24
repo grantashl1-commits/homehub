@@ -180,6 +180,8 @@ export async function loadBundle() {
     });
     linkByName();
     subscribe(hid);
+    watchHabits();
+    void syncHabitsToPointPals();
   } catch (e) {
     usePointPals.setState({ error: e instanceof Error ? e.message : String(e) });
   }
@@ -292,4 +294,129 @@ export async function pointpalsAward(kidId: string, item: { name: string; icon: 
   if (k.error) throw k.error;
   if (h.error) throw h.error;
   await loadBundle();
+}
+
+/* ── Habits ⇄ PointPals ────────────────────────────────────────────────── */
+
+/**
+ * Draws a new icon with PointPals' own generator (the `generate-icon` edge
+ * function: Gemini in the PointPals house style, white knocked out). The icon
+ * lands in the family's PointPals icon library too. PointPals allows each
+ * household 10 a month.
+ */
+export async function pointpalsGenerateIcon(prompt: string): Promise<{ url: string; remaining?: number }> {
+  const hid = usePointPals.getState().household?.id;
+  if (!usePointPals.getState().userId || !hid) throw new Error("Connect PointPals in Parent → Connections to make pictures.");
+  const { data, error } = await sb().functions.invoke("generate-icon", { body: { householdId: hid, prompt } });
+  if (error) {
+    // Supabase wraps non-2xx replies; dig the message out of the response body.
+    const body = await (error as { context?: Response }).context?.json?.().catch(() => null);
+    if (body?.error === "monthly_limit_reached") throw new Error(`That's all ${body.cap} PointPals pictures for this month. Pick an emoji for now.`);
+    throw new Error(body?.error ?? error.message ?? "Couldn't make a picture");
+  }
+  if (!data?.url) throw new Error(data?.error ?? "Couldn't make a picture");
+  return { url: data.url as string, remaining: data.remaining as number | undefined };
+}
+
+/**
+ * Makes sure a hub habit exists in PointPals as a positive skill assigned to
+ * that child (reusing one with the same name). Returns the skill id.
+ */
+export async function pointpalsEnsureSkill(kidId: string, habit: { title: string; icon: string }): Promise<string> {
+  const c = sb();
+  const st = usePointPals.getState();
+  const hid = st.household?.id;
+  if (!st.userId || !hid) throw new Error("Connect PointPals first.");
+  const { data: existing, error } = await c.from("skills").select("id,name,assigned_kid_ids").eq("household_id", hid);
+  if (error) throw error;
+  const same = (existing as Row[]).find((s) => String(s.name).trim().toLowerCase() === habit.title.trim().toLowerCase());
+  if (same) {
+    const ids = (same.assigned_kid_ids as string[] | null) ?? null;
+    // null means "everyone" in PointPals, so only narrow lists need the kid added.
+    if (ids && !ids.includes(kidId)) {
+      const { error: upErr } = await c.from("skills").update({ assigned_kid_ids: [...ids, kidId] }).eq("id", same.id);
+      if (upErr) throw upErr;
+    }
+    return same.id as string;
+  }
+  const kid = st.kids.find((k) => k.id === kidId);
+  const { data: row, error: insErr } = await c
+    .from("skills")
+    .insert({ household_id: hid, name: habit.title.slice(0, 60), icon: habit.icon, color: kid?.color ?? "sky", points: 1, is_positive: true, assigned_kid_ids: [kidId] })
+    .select("id")
+    .single();
+  if (insErr) throw insErr;
+  return (row as Row).id as string;
+}
+
+/**
+ * A habit done today drops a marble in PointPals, once per habit per day
+ * (skipped if PointPals already has today's award for it).
+ */
+export async function pointpalsAwardHabit(kidId: string, habit: { title: string; icon: string }): Promise<boolean> {
+  const st = usePointPals.getState();
+  if (!st.userId || !st.household) return false;
+  if (st.doneToday.has(`${kidId}|${habit.title}`)) return false;
+  await pointpalsAward(kidId, { name: habit.title, icon: habit.icon, points: 1 });
+  return true;
+}
+
+let syncing = false;
+let again = false;
+const inFlight = new Set<string>();
+
+/**
+ * Every active hub habit of a PointPals-linked person gets a PointPals skill,
+ * whichever screen or device added it. Runs after PointPals loads and
+ * whenever the hub's habits change.
+ */
+export async function syncHabitsToPointPals() {
+  const st = usePointPals.getState();
+  if (!st.userId || !st.household) return;
+  if (syncing) {
+    again = true;
+    return;
+  }
+  syncing = true;
+  try {
+    const hub = useHub.getState();
+    const linked = new Map(hub.members.filter((m) => m.pointpalsKidId).map((m) => [m.id, m.pointpalsKidId!]));
+    for (const h of hub.habits) {
+      const kidId = linked.get(h.memberId);
+      if (!h.active || h.pointpalsSkillId || !kidId || inFlight.has(h.id)) continue;
+      inFlight.add(h.id);
+      try {
+        const skillId = await pointpalsEnsureSkill(kidId, h);
+        useHub.getState().updateHabit(h.id, { pointpalsSkillId: skillId });
+      } catch (e) {
+        console.warn("PointPals habit sync failed", e);
+      } finally {
+        inFlight.delete(h.id);
+      }
+    }
+  } finally {
+    syncing = false;
+    if (again) {
+      again = false;
+      void syncHabitsToPointPals();
+    }
+  }
+}
+
+/** Renames or re-pictures the PointPals skill when the habit is edited on the hub. */
+export async function pointpalsUpdateSkill(skillId: string, patch: { title: string; icon: string }) {
+  if (!usePointPals.getState().userId) return;
+  const { error } = await sb().from("skills").update({ name: patch.title.slice(0, 60), icon: patch.icon }).eq("id", skillId);
+  if (error) throw error;
+}
+
+let habitWatch: (() => void) | null = null;
+function watchHabits() {
+  if (habitWatch) return;
+  let last = useHub.getState().habits;
+  habitWatch = useHub.subscribe((s) => {
+    if (s.habits === last) return;
+    last = s.habits;
+    void syncHabitsToPointPals();
+  });
 }

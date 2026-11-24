@@ -11,7 +11,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
-import { Check, ChevronDown, Flame, Pencil, Plus, Search, Trophy } from "lucide-react";
+import { Check, ChevronDown, Flame, Loader2, Pencil, Plus, Search, Sparkles, Trophy } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import { toast } from "sonner";
 import { useHub, MAX_HABITS } from "@/lib/store";
@@ -28,6 +28,8 @@ import { BigButton, ChoreIcon, Sheet } from "@/components/ui";
 import { celebrate } from "@/components/Celebrate";
 import { cn } from "@/lib/utils";
 import { useIsPhone } from "@/lib/useIsPhone";
+import { useParentUnlocked } from "@/components/PinPad";
+import { pointpalsAwardHabit, pointpalsGenerateIcon, pointpalsUpdateSkill, usePointPals } from "@/lib/integrations/pointpals";
 
 type Tab = "own" | "kids" | "grownups" | HabitGroup;
 
@@ -215,11 +217,14 @@ function useTick(habit: Habit, member: Member) {
   const checkIn = useHub((s) => s.checkIn);
   const today = dateKey();
   const doneToday = checkins.some((c) => c.habitId === habit.id && c.date === today && c.status === "done");
+  const grownUp = useParentUnlocked();
   const tick = () => {
     if (doneToday) return;
     checkIn({ habitId: habit.id, memberId: member.id, status: "done" });
     sfx.success();
     celebrate({ title: "Ticked!", subtitle: habit.title, palId: member.palId, photo: member.photo });
+    // With a grown-up's PIN in, a ticked habit also drops a marble in PointPals.
+    if (grownUp && member.pointpalsKidId) void pointpalsAwardHabit(member.pointpalsKidId, habit).catch(() => {});
   };
   return { doneToday, tick };
 }
@@ -455,6 +460,7 @@ function HabitSheet({ open, onOpenChange, member, editing }: { open: boolean; on
     sfx.pop();
     if (editing) {
       updateHabit(editing.id, { title: clean, icon: pic, frequency: freq });
+      if (editing.pointpalsSkillId) void pointpalsUpdateSkill(editing.pointpalsSkillId, { title: clean, icon: pic }).catch(() => {});
       toast.success("Habit updated");
     } else {
       addHabit(member.id, { title: clean, icon: pic, frequency: freq });
@@ -464,6 +470,23 @@ function HabitSheet({ open, onOpenChange, member, editing }: { open: boolean; on
   };
 
   const isPicture = /\.(png|jpe?g|webp|svg)$/i.test(icon) || icon.startsWith("http");
+  const ppReady = usePointPals((s) => !!s.userId && !!s.household);
+  const [drawing, setDrawing] = useState(false);
+  const draw = async () => {
+    const what = title.trim();
+    if (!what || drawing) return;
+    setDrawing(true);
+    try {
+      const { url, remaining } = await pointpalsGenerateIcon(what);
+      setIcon(url);
+      sfx.success();
+      toast.success(remaining !== undefined ? `Picture made! ${remaining} left this month.` : "Picture made!");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't make a picture");
+    } finally {
+      setDrawing(false);
+    }
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange} title={editing ? "Edit habit" : `A new habit for ${member.name}`} wide>
@@ -509,7 +532,20 @@ function HabitSheet({ open, onOpenChange, member, editing }: { open: boolean; on
             />
           </div>
           <div>
-            <p className="mb-2 text-[1.05rem] font-black uppercase tracking-[0.08em] text-ink-3">Pick a picture</p>
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-[1.05rem] font-black uppercase tracking-[0.08em] text-ink-3">Pick a picture</p>
+              <button
+                type="button"
+                onClick={() => void draw()}
+                disabled={!title.trim() || drawing || !ppReady}
+                title={ppReady ? "Draw a new picture with PointPals" : "Connect PointPals in Parent → Connections to make pictures"}
+                className="tap flex h-[4rem] items-center gap-2 rounded-full bg-lilac px-4 text-[1.2rem] font-black text-white shadow-[var(--shadow-soft)] disabled:opacity-50"
+              >
+                {drawing ? <Loader2 className="size-5 animate-spin" /> : <Sparkles className="size-5" />}
+                {drawing ? "Drawing…" : "Make a picture"}
+              </button>
+            </div>
+            {!ppReady && <p className="mb-2 text-[1rem] font-bold text-ink-3">Connect PointPals to draw a picture for your own habit. Emoji work too.</p>}
             <div className="grid grid-cols-8 gap-2 max-md:grid-cols-6">
               {isPicture && (
                 <button type="button" onClick={() => setIcon(icon)} className="tap grid aspect-square place-items-center rounded-[1.2rem] bg-sage-tint ring-[0.2rem] ring-sage" aria-label="Keep the picture">

@@ -17,6 +17,7 @@ import { BigButton, ChoreIcon, ReadAloud } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { useTranscriber } from "@/lib/transcribe";
 import { RecordPill, SaveReflection } from "@/components/ReflectionRecorder";
+import { pointpalsAwardHabit } from "@/lib/integrations/pointpals";
 
 type Phase = "intro" | "ask" | "why" | "summary";
 
@@ -88,6 +89,8 @@ export default function Reflect() {
     if (!person || !habit || busy) return;
     setBusy(true);
     checkIn({ habitId: habit.id, memberId: person.id, status: "done" });
+    // A habit done drops a marble in that person's PointPals jar (once a day).
+    if (person.pointpalsKidId) void pointpalsAwardHabit(person.pointpalsKidId, habit).catch(() => {});
     sfx.success();
     if (!reducedMotion) void confetti({ particleCount: 90, spread: 80, origin: { y: 0.7 }, colors: [pal(person.palId).color, "#F6C64E", "#EE7B5B"], scalar: 1.2 });
     window.setTimeout(advance, 1200);

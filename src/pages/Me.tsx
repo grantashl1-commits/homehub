@@ -4,12 +4,12 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { CalendarPlus, Check, Hourglass, ShoppingBasket, Sparkles, StickyNote } from "lucide-react";
 import { toast } from "sonner";
-import { useHub, activeHabits, habitStreak, unreadNotesFor } from "@/lib/store";
+import { useHub, unreadNotesFor } from "@/lib/store";
 import { useChoresFor, useFamilyJar, useMarbles, useMember, useShoppingList, type ChoreView } from "@/lib/hooks";
 import { pal } from "@/lib/pals";
 import { QUICK_GROCERIES } from "@/lib/catalog";
 import { canListen, listenOnce, sfx } from "@/lib/device";
-import { dateKey, greeting } from "@/lib/time";
+import { greeting } from "@/lib/time";
 import { countdowns, praise, sleepsLabel } from "@/lib/nz";
 import type { Member } from "@/lib/types";
 import { Avatar } from "@/components/Avatar";
@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { useIsPhone } from "@/lib/useIsPhone";
 import { pointpalsAward, usePointPals } from "@/lib/integrations/pointpals";
 import { useParentUnlocked } from "@/components/PinPad";
+import { HabitTracker } from "@/components/HabitTracker";
 
 export function MePicker() {
   const members = useHub((s) => s.members);
@@ -97,6 +98,7 @@ export function KidZone() {
     <div className="grid h-full grid-cols-[minmax(0,0.85fr)_minmax(0,2fr)] gap-[1.3rem] max-md:flex max-md:h-auto max-md:flex-col max-md:gap-3">
       <ProfileCard member={member} />
       <div className="flex min-h-0 flex-col gap-[1.3rem] max-md:gap-3">
+        <HabitTracker member={member} />
         <div className="card flex min-h-0 flex-1 flex-col p-6 max-md:flex-none max-md:p-3.5">
           {isKid ? <Jobs member={member} /> : <MyNotes member={member} />}
         </div>
@@ -126,13 +128,6 @@ function ProfileCard({ member }: { member: Member }) {
   const phone = useIsPhone();
   const p = pal(member.palId);
   const marbles = useMarbles(member);
-  const habits = useHub((s) => s.habits);
-  const checkins = useHub((s) => s.checkins);
-  const mine = activeHabits(habits, member.id);
-  const habit = mine[0];
-  const today = habit && checkins.find((c) => c.habitId === habit.id && c.date === dateKey());
-  const doneToday = mine.filter((h) => checkins.some((c) => c.habitId === h.id && c.date === dateKey() && c.status === "done")).length;
-  const streak = habit ? habitStreak(checkins, habit.id) : 0;
   const members = useHub((s) => s.members);
   const bday = countdowns(members, new Date(), false).find((c) => c.memberId === member.id);
   const hello = `${greeting()}, ${member.name}! ${p.quote}`;
@@ -176,30 +171,6 @@ function ProfileCard({ member }: { member: Member }) {
       )}
 
       <MyReflections member={member} />
-
-      <Link
-        to={`/habits/${member.id}`}
-        onClick={() => sfx.tap()}
-        className="tap mt-3 flex w-full items-center gap-3 rounded-[1.4rem] bg-white p-3 text-left shadow-sm max-md:mt-2.5"
-      >
-        {habit ? <ChoreIcon icon={habit.icon} size={4} /> : <span className="text-[3rem]">🌱</span>}
-        <span className="min-w-0 flex-1">
-          <span className="block text-[1.05rem] font-black uppercase tracking-[0.08em] text-ink-3">{mine.length > 1 ? `My ${mine.length} habits` : "My habit"}</span>
-          <span className="block truncate text-[1.35rem] font-extrabold">{habit ? mine.map((h) => h.title).join(" · ") : "Pick a habit"}</span>
-          {habit && (
-            <span className="block text-[1.1rem] font-bold text-ink-2">
-              {mine.length > 1
-                ? `✅ ${doneToday} of ${mine.length} today`
-                : today?.status === "done"
-                  ? "✅ Done today"
-                  : today?.status === "not_today"
-                    ? "☁️ Not today"
-                    : "Tonight at dinner"}
-              {streak > 1 && ` · 🔥 ${streak}`}
-            </span>
-          )}
-        </span>
-      </Link>
 
       {member.role === "child" && (
         <Link
