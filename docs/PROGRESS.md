@@ -394,3 +394,7 @@ The printable habit worksheet as a game, from each kid's Me page
 - Google's Tasks API gives the title, notes and one date ("due"); Calendar's
   separate start date isn't in the API, so the card shows the due date.
 - Needs GOOGLE_OAUTH_CLIENT_ID / SECRET in Vercel (docs/SETUP.md → Google Tasks).
+- Vercel's Hobby plan allows 12 functions and counts every file in /api not
+  starting with "_" (tests included). Adding google-tasks made 13 and the
+  deploy failed, so api tests moved to tests/api/ and parse-ics became
+  _parse-ics. Keep helpers "_"-prefixed and tests out of /api.

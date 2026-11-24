@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readState, signState, toHubTask } from "./google-tasks";
+import { readState, signState, toHubTask } from "../../api/google-tasks";
 
 describe("Google Tasks connect state", () => {
   process.env.HUB_SECRETS_KEY = "test-secret";
