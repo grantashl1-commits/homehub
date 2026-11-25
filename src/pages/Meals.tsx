@@ -185,6 +185,7 @@ function RecipeSheet({ day, onClose }: { day: DayMeal | null; onClose: () => voi
   return (
     <Sheet open={!!day} onOpenChange={(o) => !o && onClose()} title={r?.name ?? "Plan this dinner"} wide>
       {day && (
+        <>
         <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-6">
           <div className="flex flex-col gap-4">
             <div className="relative aspect-[4/3] overflow-hidden rounded-[1.8rem]">
@@ -229,7 +230,7 @@ function RecipeSheet({ day, onClose }: { day: DayMeal | null; onClose: () => voi
               <>
                 <div className="mb-3 flex items-center justify-between">
                   <p className="text-[1.3rem] font-black uppercase tracking-[0.08em] text-ink-3">Ingredients</p>
-                  <ReadAloud text={`${r.name}. You need: ${r.ingredients.map(ingredientName).join(", ")}`} size={3.2} />
+                  <ReadAloud text={`${r.name}. You need: ${r.ingredients.map(ingredientName).join(", ")}.${r.method?.length ? ` Then: ${r.method.join(". ")}.` : ""}`} size={3.2} />
                 </div>
                 <ul className="flex max-h-[28rem] flex-col gap-2 overflow-y-auto pr-1">
                   {r.ingredients.map((line, i) => {
@@ -260,6 +261,20 @@ function RecipeSheet({ day, onClose }: { day: DayMeal | null; onClose: () => voi
             )}
           </div>
         </div>
+        {r?.method && r.method.length > 0 && (
+          <div className="mt-6">
+            <p className="mb-3 text-[1.3rem] font-black uppercase tracking-[0.08em] text-ink-3">Method</p>
+            <ol className="flex flex-col gap-2">
+              {r.method.map((step, i) => (
+                <li key={i} className="flex items-start gap-3 rounded-[1.2rem] bg-white px-4 py-3">
+                  <span className="grid size-[2.6rem] shrink-0 place-items-center rounded-full bg-sage text-[1.2rem] font-black text-white">{i + 1}</span>
+                  <span className="min-w-0 flex-1 text-[1.3rem] font-bold leading-snug">{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+        </>
       )}
       {day && <SwapSheet open={swapping} onOpenChange={setSwapping} date={day.key} />}
     </Sheet>
