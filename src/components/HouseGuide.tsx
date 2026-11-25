@@ -38,7 +38,34 @@ const SERIF: CSSProperties = {
 };
 const SANS: CSSProperties = { fontFamily: "'Figtree Variable', 'Nunito Sans Variable', system-ui, sans-serif" };
 
-export function HouseGuide({ guide, onClose, startAt }: { guide: Guide; onClose: () => void; startAt?: string }) {
+export interface GuideWifi {
+  name: string;
+  password: string;
+}
+
+/**
+ * Pop-up (onClose) or, in guest mode, the whole screen (`embedded`): then the
+ * top-left button is whatever `corner` gives (e.g. the clock), `aside` sits at
+ * the top right (weather, Owners), and the guide wanders back to the welcome
+ * page after a few quiet minutes, ready for the next guest.
+ */
+export function HouseGuide({
+  guide,
+  onClose,
+  startAt,
+  embedded,
+  corner,
+  aside,
+  wifi,
+}: {
+  guide: Guide;
+  onClose?: () => void;
+  startAt?: string;
+  embedded?: boolean;
+  corner?: ReactNode;
+  aside?: ReactNode;
+  wifi?: GuideWifi | null;
+}) {
   const [index, setIndex] = useState(() => Math.max(0, guide.sections.findIndex((s) => s.id === startAt)));
   const [dir, setDir] = useState(1);
   const [card, setCard] = useState<GuideCard | null>(null);
@@ -70,11 +97,35 @@ export function HouseGuide({ guide, onClose, startAt }: { guide: Guide; onClose:
       }
       if (e.key === "ArrowRight") go(index + 1);
       if (e.key === "ArrowLeft") go(index - 1);
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") onClose?.();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [go, index, card, photo, onClose]);
+
+  // On the guest screen, go back to the welcome page after 3 quiet minutes.
+  useEffect(() => {
+    if (!embedded) return;
+    let t = window.setTimeout(reset, 180_000);
+    function reset() {
+      setCard(null);
+      setPhoto(null);
+      setDir(-1);
+      setIndex(0);
+      scroller.current?.scrollTo({ top: 0 });
+    }
+    const poke = () => {
+      window.clearTimeout(t);
+      t = window.setTimeout(reset, 180_000);
+    };
+    window.addEventListener("pointerdown", poke);
+    window.addEventListener("keydown", poke);
+    return () => {
+      window.clearTimeout(t);
+      window.removeEventListener("pointerdown", poke);
+      window.removeEventListener("keydown", poke);
+    };
+  }, [embedded]);
 
   // …and a sideways swipe on the page does the same.
   const swipe = useRef<{ x: number; y: number } | null>(null);
@@ -89,22 +140,28 @@ export function HouseGuide({ guide, onClose, startAt }: { guide: Guide; onClose:
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col overflow-hidden" style={{ ...SANS, background: C.ivory, color: C.charcoal }}>
+    <div
+      className="fixed inset-0 z-50 flex flex-col overflow-hidden pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
+      style={{ ...SANS, background: C.ivory, color: C.charcoal }}
+    >
       {/* Title bar */}
-      <header className="flex shrink-0 items-center gap-[1.4rem] px-[2rem] pb-[1rem] pt-[1.4rem]">
-        <RoundButton label="Back to the welcome screen" onClick={onClose}>
-          <ArrowLeft className="size-7" strokeWidth={2.2} />
-        </RoundButton>
+      <header className="flex shrink-0 items-center gap-[1.4rem] px-[2rem] pb-[1rem] pt-[1.4rem] max-md:gap-3 max-md:px-3 max-md:pb-2 max-md:pt-2">
+        {onClose && (
+          <RoundButton label="Back to the welcome screen" onClick={onClose}>
+            <ArrowLeft className="size-7" strokeWidth={2.2} />
+          </RoundButton>
+        )}
+        {corner}
         <div className="min-w-0">
           <div className="flex items-center gap-3">
             <span className="h-px w-10" style={{ background: C.charcoal }} />
             <span className="text-[1rem] font-black uppercase tracking-[0.45em]">{guide.name}</span>
           </div>
-          <p className="mt-0.5 whitespace-nowrap text-[2.6rem] leading-none" style={SERIF}>
+          <p className="mt-0.5 whitespace-nowrap text-[2.6rem] leading-none max-md:text-[2.1rem]" style={SERIF}>
             Guest <span className="italic">Guide.</span>
           </p>
         </div>
-        <div className="ml-[1rem] flex min-w-0 gap-2 overflow-hidden">
+        <div className="ml-[1rem] flex min-w-0 gap-2 overflow-hidden max-lg:hidden">
           {guide.essentials.map((e) => (
             <button
               key={e.label}
@@ -121,11 +178,33 @@ export function HouseGuide({ guide, onClose, startAt }: { guide: Guide; onClose:
         <RoundButton className="ml-auto" label={`Read ${section.title} aloud`} onClick={() => speak(sectionText(section))}>
           <Volume2 className="size-7" />
         </RoundButton>
+        {aside}
       </header>
 
-      <div className="flex min-h-0 flex-1 gap-[1.6rem] px-[2rem] pb-[1.6rem]">
+      {/* Phones: chapters as a sideways strip under the title. */}
+      <nav aria-label="Guide chapters" className="no-scrollbar flex shrink-0 gap-2 overflow-x-auto px-3 pb-2.5 md:hidden">
+        {guide.sections.map((s, i) => {
+          const on = i === index;
+          return (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => go(i)}
+              aria-current={on ? "true" : undefined}
+              ref={on ? (el) => el?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" }) : undefined}
+              className={cn("tap flex h-[4rem] shrink-0 items-center gap-2 rounded-full px-4 text-[1.2rem] font-bold", on ? "text-white shadow" : "bg-white/70")}
+              style={on ? { background: C.charcoal } : undefined}
+            >
+              <span className="text-[1.3rem] leading-none">{s.emoji}</span>
+              {s.title}
+            </button>
+          );
+        })}
+      </nav>
+
+      <div className="flex min-h-0 flex-1 gap-[1.6rem] px-[2rem] pb-[1.6rem] max-md:px-2 max-md:pb-2">
         {/* Chapter rail */}
-        <aside className="flex w-[25rem] shrink-0 flex-col">
+        <aside className="flex w-[25rem] shrink-0 flex-col max-md:hidden">
           <div className="px-2 pb-3">
             <p className="text-[0.95rem] font-black uppercase tracking-[0.4em]" style={{ color: C.slate }}>
               Guide chapters
@@ -199,21 +278,23 @@ export function HouseGuide({ guide, onClose, startAt }: { guide: Guide; onClose:
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -40 * dir }}
               transition={{ duration: 0.35, ease: [0.23, 1, 0.32, 1] }}
-              className="p-[2.4rem]"
+              className="p-[2.4rem] max-md:p-5"
             >
               <div className="flex items-center gap-3" style={{ color: C.bronzeDeep }}>
                 <span className="text-[1.3rem] leading-none">{section.emoji}</span>
                 <span className="text-[1rem] font-black uppercase tracking-[0.4em]">{guide.eyebrow}</span>
               </div>
-              <h2 className="mb-[1.6rem] mt-2 text-[3.8rem] leading-[1.02]" style={SERIF}>
+              <h2 className="mb-[1.6rem] mt-2 text-[3.8rem] leading-[1.02] max-md:text-[2.8rem]" style={SERIF}>
                 {section.heading ?? section.title}
               </h2>
 
+              {wifi && section.id === "arrival" && <WifiPanel wifi={wifi} />}
+
               {section.image ? (
-                <div className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] items-start gap-[2rem]">
+                <div className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] items-start gap-[2rem] max-md:grid-cols-1">
                   <Blocks blocks={section.blocks} onCard={setCard} onPhoto={setPhoto} />
-                  <div className="sticky top-0">
-                    <Photo src={section.image} alt={section.title} emoji={section.emoji} className="aspect-[4/5] w-full rounded-[1.6rem] shadow-2xl" />
+                  <div className="sticky top-0 max-md:static max-md:order-first">
+                    <Photo src={section.image} alt={section.title} emoji={section.emoji} className="aspect-[4/5] w-full max-md:aspect-[16/10] rounded-[1.6rem] shadow-2xl" />
                   </div>
                 </div>
               ) : (
@@ -224,7 +305,7 @@ export function HouseGuide({ guide, onClose, startAt }: { guide: Guide; onClose:
               <div className="mt-[2.4rem] flex items-center gap-3 border-t pt-[1.6rem]" style={{ borderColor: C.chalk }}>
                 {index > 0 && (
                   <PageButton onClick={() => go(index - 1)}>
-                    <ArrowLeft className="size-6" /> {guide.sections[index - 1].title}
+                    <ArrowLeft className="size-6" /> <span className="max-md:hidden">{guide.sections[index - 1].title}</span>
                   </PageButton>
                 )}
                 {index < total - 1 && (
@@ -242,6 +323,31 @@ export function HouseGuide({ guide, onClose, startAt }: { guide: Guide; onClose:
         {card && <CardSheet card={card} onClose={() => setCard(null)} />}
         {photo && <Lightbox photo={photo} onClose={() => setPhoto(null)} />}
       </AnimatePresence>
+    </div>
+  );
+}
+
+/** The Wi-Fi, big and scannable, at the top of Arrival when the owners have set it. */
+function WifiPanel({ wifi }: { wifi: GuideWifi }) {
+  const esc = (v: string) => v.replace(/([\\;,:"])/g, "\\$1");
+  const qr = useQr(`WIFI:T:WPA;S:${esc(wifi.name)};P:${esc(wifi.password)};;`);
+  return (
+    <div className="mb-[2rem] flex items-center gap-[1.6rem] rounded-[1.6rem] p-[1.6rem] max-md:gap-3 max-md:p-3" style={{ background: C.ivory }}>
+      {qr && <img src={qr} alt="Scan to join the Wi-Fi" className="size-[11rem] shrink-0 rounded-[1rem] bg-white p-1.5 max-md:size-[8.5rem]" />}
+      <div className="min-w-0">
+        <p className="text-[1rem] font-black uppercase tracking-[0.35em]" style={{ color: C.bronzeDeep }}>
+          Wi-Fi
+        </p>
+        <p className="mt-1 break-words text-[2.2rem] leading-tight max-md:text-[1.8rem]" style={SERIF}>
+          {wifi.name}
+        </p>
+        {wifi.password && (
+          <p className="mt-1.5 inline-block rounded-full bg-white px-4 py-1 font-mono text-[1.5rem] font-bold">{wifi.password}</p>
+        )}
+        <p className="mt-2 text-[1.15rem] font-semibold" style={{ color: C.slate }}>
+          Point your phone's camera at the code to join.
+        </p>
+      </div>
     </div>
   );
 }

@@ -160,7 +160,7 @@ export function NightClock({ onWake }: { onWake: () => void }) {
       >
         🌙
       </motion.span>
-      <p className="font-display text-[11rem] font-black leading-none opacity-80">{formatTime(now)}</p>
+      <p className="font-display text-[min(11rem,26vw)] font-black leading-none opacity-80">{formatTime(now)}</p>
       <p className="text-[1.8rem] font-bold opacity-60">Sleep tight</p>
       {w && t && (
         <p className="mt-6 text-[1.5rem] font-bold opacity-50">

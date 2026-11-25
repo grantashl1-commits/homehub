@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from "react";
-import QRCode from "qrcode";
+import { useState } from "react";
 import { motion } from "motion/react";
-import { ExternalLink, Flame, Home, Lock, LogOut, MapPin, Refrigerator, Wifi, X } from "lucide-react";
+import { ExternalLink, Home, Lock, Wifi, X } from "lucide-react";
 import { useHub } from "@/lib/store";
 import { useNow } from "@/lib/hooks";
 import { formatDateLong, formatTime } from "@/lib/time";
@@ -11,19 +10,19 @@ import { Sheet } from "@/components/ui";
 import { HouseGuide } from "@/components/HouseGuide";
 import { DEFAULT_GUIDE } from "@/content/guides";
 
-/** What Airbnb guests see. No family data is read or shown here. */
+/**
+ * What Airbnb guests see: the interactive house guide is the whole screen
+ * (chapters, how-tos, places, check-out), like the One Eleven guest-info page,
+ * with the clock, weather and the Wi-Fi from settings. No family data is read
+ * or shown here. Owners leave with the PIN.
+ */
 export default function Guest() {
   const s = useHub((x) => x.settings);
   const update = useHub((x) => x.updateSettings);
   const now = useNow();
   const weather = useWeather();
-  const [wifiQr, setWifiQr] = useState<string>();
-  const [guideQr, setGuideQr] = useState<string>();
   const [exiting, setExiting] = useState(false);
-  /** Which guide chapter is open ("" = the start), or null when closed. */
-  const [reading, setReading] = useState<string | null>(null);
-  const guideLink = s.guidebookUrl || DEFAULT_GUIDE?.pdfUrl || "";
-  const hold = useRef<number | undefined>(undefined);
+  const [reading, setReading] = useState(false);
   const w = weather.data ? describeWeather(weather.data.code, weather.data.isDay) : null;
   const hasPin = !!s.pinHash;
 
@@ -36,118 +35,82 @@ export default function Guest() {
     setExiting(true);
   };
 
-  useEffect(() => {
-    const esc = (v: string) => v.replace(/([\\;,:"])/g, "\\$1");
-    if (s.wifiName)
-      void QRCode.toDataURL(`WIFI:T:WPA;S:${esc(s.wifiName)};P:${esc(s.wifiPassword)};;`, { margin: 1, width: 360, color: { dark: "#23263b", light: "#ffffff" } }).then(setWifiQr);
-    if (guideLink) void QRCode.toDataURL(guideLink, { margin: 1, width: 360, color: { dark: "#23263b", light: "#ffffff" } }).then(setGuideQr);
-  }, [s.wifiName, s.wifiPassword, guideLink]);
+  const owners = (
+    <button
+      type="button"
+      onClick={leaveGuestMode}
+      aria-label={hasPin ? "Owners: enter the PIN to leave guest mode" : "Leave guest mode"}
+      className="tap flex h-[4.4rem] shrink-0 items-center gap-2 rounded-full bg-white/80 px-4 text-[1.1rem] font-black text-ink-3 ring-1 ring-black/5 max-md:size-[4.4rem] max-md:justify-center max-md:px-0"
+    >
+      <Lock className="size-5" />
+      <span className="max-md:hidden">Owners</span>
+    </button>
+  );
 
-  // Shortcuts straight into the house guide's chapters.
-  const sections = [
-    { key: "checkout", title: "Check-out", icon: LogOut },
-    { key: "howto", title: "Sauna, spa & heating", icon: Flame },
-    { key: "house", title: "The house", icon: Refrigerator },
-    { key: "explore", title: "Things to do", icon: MapPin },
-  ];
-
-  return (
-    <div className="relative flex h-[100dvh] flex-col overflow-hidden bg-[linear-gradient(160deg,#f6f1e8_0%,#ece6da_100%)] p-[2.4rem] text-ink">
-      <button
-        type="button"
-        aria-label="Owner menu (hold)"
-        onPointerDown={() => (hold.current = window.setTimeout(leaveGuestMode, 1600))}
-        onPointerUp={() => window.clearTimeout(hold.current)}
-        onPointerLeave={() => window.clearTimeout(hold.current)}
-        className="absolute left-0 top-0 size-[6rem] opacity-0"
-      />
-      <header className="flex items-start justify-between">
-        <div className="flex items-center gap-4">
-          <div className="grid size-[4.4rem] place-items-center rounded-[1.4rem] bg-[#5f7a64] text-white">
-            <Home className="size-8" />
-          </div>
-          <div>
-            <p className="font-display text-[3.6rem] font-black leading-none">Welcome to our home</p>
-            <p className="text-[1.4rem] font-bold text-ink-2">Make yourselves comfortable. We hope you love Taupō.</p>
-          </div>
-        </div>
-        <div className="text-right">
-          <p className="font-display text-[3.2rem] font-black leading-none">{formatTime(now)}</p>
-          <p className="text-[1.3rem] font-bold text-ink-2">{formatDateLong(now)}</p>
-          {w && weather.data && (
-            <p className="mt-1 text-[1.4rem] font-extrabold">
-              {w.emoji} {weather.data.temp}° · {w.label}
-            </p>
-          )}
-        </div>
-      </header>
-
-      <div className="mt-8 grid min-h-0 flex-1 grid-cols-[1fr_1fr_1.3fr] gap-[1.4rem]">
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center justify-center gap-3 rounded-[2rem] bg-white p-6 text-center shadow-[var(--shadow-soft)]">
-          <Wifi className="size-10 text-[#5f7a64]" />
-          <p className="font-display text-[2.4rem] font-black leading-none">Wi-Fi</p>
-          {wifiQr ? <img src={wifiQr} alt="Scan to join the Wi-Fi" className="w-[13rem] rounded-xl" /> : <div className="grid h-[13rem] w-[13rem] place-items-center rounded-xl bg-paper text-[1.2rem] font-bold text-ink-3">Add Wi-Fi in settings</div>}
-          {s.wifiName && <p className="text-[1.5rem] font-black">{s.wifiName}</p>}
-          {s.wifiPassword && <p className="rounded-full bg-paper px-4 py-1 font-mono text-[1.4rem] font-bold">{s.wifiPassword}</p>}
-        </motion.div>
-        <motion.button
-          type="button"
-          onClick={() => setReading("")}
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.06 }}
-          className="tap flex flex-col items-center justify-center gap-3 rounded-[2rem] bg-[#5f7a64] p-6 text-center text-white shadow-[var(--shadow-soft)]"
-        >
-          <p className="text-[3rem] leading-none">📖</p>
-          <p className="font-display text-[2.4rem] font-black leading-none">House guidebook</p>
-          {guideQr ? <img src={guideQr} alt="Scan to open the guidebook" className="w-[13rem] rounded-xl" /> : <div className="grid h-[13rem] w-[13rem] place-items-center rounded-xl bg-white/15 text-[4rem]">📖</div>}
-          <span className="rounded-full bg-white px-5 py-2 text-[1.4rem] font-black text-[#5f7a64]">Tap to read it here</span>
-          <p className="text-[1.3rem] font-bold opacity-85">or scan with your phone to take it with you</p>
-        </motion.button>
-        <div className="grid grid-cols-2 gap-[1.4rem]">
-          {sections.map((sec, i) => (
-            <motion.button
-              key={sec.key}
-              type="button"
-              onClick={() => setReading(sec.key)}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 + i * 0.05 }}
-              className="tap flex flex-col items-start justify-between rounded-[2rem] bg-white p-5 text-left shadow-[var(--shadow-soft)]"
-            >
-              <sec.icon className="size-9 text-[#5f7a64]" />
-              <span className="font-display text-[2rem] font-black leading-tight">{sec.title}</span>
-            </motion.button>
-          ))}
-        </div>
-      </div>
-      <p className="mt-5 text-center text-[1.2rem] font-bold text-ink-3">Need anything? Message us through Airbnb and we'll get straight back to you.</p>
-      <button
-        type="button"
-        onClick={leaveGuestMode}
-        aria-label={hasPin ? "Owners: enter the PIN to leave guest mode" : "Leave guest mode"}
-        className="tap absolute bottom-[1.6rem] right-[1.6rem] z-10 flex items-center gap-2 rounded-full bg-white/85 px-4 py-2.5 text-[1.15rem] font-black text-ink-3 shadow-[var(--shadow-soft)] ring-1 ring-black/5 backdrop-blur"
-      >
-        <Lock className="size-4" />
-        Owners
-      </button>
-
-      {reading !== null &&
-        (DEFAULT_GUIDE ? (
-          <HouseGuide guide={DEFAULT_GUIDE} startAt={reading || undefined} onClose={() => setReading(null)} />
-        ) : s.guidebookUrl ? (
-          <GuideReader url={s.guidebookUrl} onClose={() => setReading(null)} />
-        ) : null)}
-      <Sheet open={exiting} onOpenChange={setExiting} title="Owners only" className="w-[min(36rem,94vw)]">
-        <PinPad
-          reason="Enter the PIN to leave guest mode"
-          onSuccess={() => {
-            setExiting(false);
-            update({ guestMode: false });
-          }}
-        />
-      </Sheet>
+  const clock = (
+    <div className="shrink-0 text-right leading-none max-md:hidden">
+      <p className="font-display text-[2.4rem] font-black">{formatTime(now)}</p>
+      <p className="mt-1 text-[1.1rem] font-bold text-ink-2">
+        {w && weather.data ? `${w.emoji} ${weather.data.temp}° · ` : ""}
+        {formatDateLong(now)}
+      </p>
     </div>
+  );
+
+  if (DEFAULT_GUIDE) {
+    return (
+      <>
+        <HouseGuide
+          guide={DEFAULT_GUIDE}
+          embedded
+          wifi={s.wifiName ? { name: s.wifiName, password: s.wifiPassword } : null}
+          aside={
+            <>
+              {clock}
+              {owners}
+            </>
+          }
+        />
+        <OwnersSheet open={exiting} onOpenChange={setExiting} onLeave={() => update({ guestMode: false })} />
+      </>
+    );
+  }
+
+  // No built-in guide for this house: a simple welcome with the linked guidebook.
+  return (
+    <div className="relative flex h-[100dvh] flex-col items-center justify-center gap-5 bg-[linear-gradient(160deg,#f6f1e8_0%,#ece6da_100%)] p-6 text-center text-ink">
+      <div className="grid size-[5rem] place-items-center rounded-[1.4rem] bg-[#5f7a64] text-white">
+        <Home className="size-9" />
+      </div>
+      <p className="font-display text-[3.6rem] font-black leading-none max-md:text-[2.8rem]">Welcome to our home</p>
+      {s.wifiName && (
+        <p className="flex items-center gap-2 text-[1.6rem] font-black">
+          <Wifi className="size-6 text-[#5f7a64]" /> {s.wifiName} · <span className="font-mono">{s.wifiPassword}</span>
+        </p>
+      )}
+      {s.guidebookUrl && (
+        <button type="button" onClick={() => setReading(true)} className="tap rounded-full bg-[#5f7a64] px-8 py-4 text-[1.6rem] font-black text-white">
+          📖 Open the house guide
+        </button>
+      )}
+      <div className="absolute right-4 top-4">{owners}</div>
+      {reading && s.guidebookUrl && <GuideReader url={s.guidebookUrl} onClose={() => setReading(false)} />}
+      <OwnersSheet open={exiting} onOpenChange={setExiting} onLeave={() => update({ guestMode: false })} />
+    </div>
+  );
+}
+
+function OwnersSheet({ open, onOpenChange, onLeave }: { open: boolean; onOpenChange: (o: boolean) => void; onLeave: () => void }) {
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange} title="Owners only" className="w-[min(36rem,94vw)]">
+      <PinPad
+        reason="Enter the PIN to leave guest mode"
+        onSuccess={() => {
+          onOpenChange(false);
+          onLeave();
+        }}
+      />
+    </Sheet>
   );
 }
 

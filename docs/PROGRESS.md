@@ -429,3 +429,18 @@ The printable habit worksheet as a game, from each kid's Me page
   page no longer repeats notes (approvals + plans for Google instead).
 - Checked the recipe-method merge: 733 of 1039 built-in recipes carry a
   method (565KB, precached), own SIGNAL recipes map instructions → method.
+
+## Guest mode: the house guide is the guest screen; Parent on phones
+
+- Guest mode opens straight into the interactive 5 Lens Way guide (chapters,
+  how-to tabs, photos, read-aloud), in the same style as One Eleven's
+  guest-info page. No more QR-to-a-PDF. The clock and the Owners (PIN) button
+  sit in the guide's header. The Arrival chapter shows the Wi-Fi name,
+  password and a join code. After 3 minutes untouched it goes back to the
+  welcome chapter for the next guest.
+- On phones the guide shows chapters as a swipeable strip, one column, with
+  the photo on top. Houses without a built-in guide still get a simple
+  welcome with a "read the guide" button.
+- Parent on phones: the PIN screen stacks (no overlapping keys); tabs are a
+  sticky, swipeable strip with Lock at the end; person rows, money, settings
+  and toggles go to one column. The night clock fits a phone's width.
