@@ -409,22 +409,23 @@ function JobCard({ chore, member, onDone, dense }: { chore: ChoreView; member: M
   );
 }
 
+/** Grown-ups who aren't PointPals earners: what's waiting on them (their notes are in the card on the left). */
 function MyNotes({ member }: { member: Member }) {
-  const notes = useHub(useShallow((s) => s.notes.filter((n) => !n.doneAt && (n.to === member.id || n.to === "everyone"))));
   const claims = useHub(useShallow((s) => s.claims.filter((c) => c.status === "pending")));
+  const plans = useHub(useShallow((s) => s.kidPlans.filter((p) => !p.addedToCalendar)));
   return (
     <>
       <h2 className="mb-4 font-display text-[2.6rem] font-black leading-none max-md:mb-3 max-md:text-[2rem]">For {member.name}</h2>
       <div className="grid grid-cols-2 gap-4 max-md:gap-2.5">
-        <Link to="/notes" className="tap rounded-[1.6rem] bg-lilac-tint p-5">
-          <p className="text-[3rem] leading-none">💌</p>
-          <p className="mt-2 font-display text-[2.4rem] font-black leading-none">{notes.length} notes</p>
-          <p className="text-[1.2rem] font-bold text-ink-2">on the fridge for you</p>
-        </Link>
-        <Link to="/parent" className="tap rounded-[1.6rem] bg-sun-tint p-5">
+        <Link to="/parent" className="tap rounded-[1.6rem] bg-sun-tint p-5 max-md:p-4">
           <p className="text-[3rem] leading-none">⭐</p>
           <p className="mt-2 font-display text-[2.4rem] font-black leading-none">{claims.length} jobs</p>
           <p className="text-[1.2rem] font-bold text-ink-2">waiting for approval</p>
+        </Link>
+        <Link to="/parent" className="tap rounded-[1.6rem] bg-sky-tint p-5 max-md:p-4">
+          <p className="text-[3rem] leading-none">📅</p>
+          <p className="mt-2 font-display text-[2.4rem] font-black leading-none">{plans.length} plans</p>
+          <p className="text-[1.2rem] font-bold text-ink-2">to add to Google Calendar</p>
         </Link>
       </div>
     </>

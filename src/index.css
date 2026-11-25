@@ -224,3 +224,10 @@
   animation-duration: 0.01ms !important;
   animation-iteration-count: 1 !important;
 }
+
+/* Installed on a home screen: behave like an app, not a web page. */
+@media (display-mode: standalone) {
+  body {
+    -webkit-touch-callout: none;
+  }
+}

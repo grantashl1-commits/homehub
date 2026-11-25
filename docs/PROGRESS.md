@@ -407,3 +407,25 @@ The printable habit worksheet as a game, from each kid's Me page
   runs again whenever the screen wakes or comes back online.
 - Missing recordings say so ("hasn't reached this screen yet…") instead of a
   play button that does nothing, and failed downloads/uploads are logged.
+
+## 25 Nov 2026: installable phone app (PWA)
+
+- Manifest after the web.dev/PWABuilder checklist: id + scope, display
+  standalone (was fullscreen), en-NZ, separate maskable icons (art inside the
+  safe zone), home-screen shortcuts (List, Leave a note, Calendar, Dinner
+  reflection) and narrow/wide install screenshots (not precached).
+- Updates: workbox skipWaiting + clientsClaim + cleanupOutdatedCaches, and
+  the app checks for a new version whenever it comes back into view (phones
+  resume rather than reload, which left one phone on a days-old version).
+  vercel.json: no-cache for sw.js, registerSW.js, the manifest and
+  index.html; hashed assets cached for a year.
+- Install card above the tab bar on touch screens not running the app yet:
+  Chrome/Android "Install" (beforeinstallprompt), iPhone/iPad Share → Add to
+  Home Screen steps. Dismiss hides it for two weeks.
+- "Offline" pill in the top bar when there's no internet.
+- Phones: every Sheet is a bottom sheet (drag the handle down to close,
+  safe-area padding); recipe sheet is one column with a wide photo; home
+  "Who's here" fits four faces with badges under the names; grown-ups' Me
+  page no longer repeats notes (approvals + plans for Google instead).
+- Checked the recipe-method merge: 733 of 1039 built-in recipes carry a
+  method (565KB, precached), own SIGNAL recipes map instructions → method.

@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useRef } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { create } from "zustand";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
@@ -12,6 +12,7 @@ import { describeWeather, useWeather } from "@/lib/integrations/weather";
 import { requestWakeLock, setSoundsEnabled, sfx } from "@/lib/device";
 import { lockParent, requireParent, useParentUnlocked } from "./PinPad";
 import { Screensaver, NightClock } from "./Ambient";
+import { InstallBanner } from "./InstallBanner";
 
 const DOCK = [
   { to: "/", label: "Home", icon: Home, color: "var(--coral)", end: true },
@@ -48,6 +49,7 @@ export function AppShell() {
         </AnimatePresence>
       </main>
       {!fullBleed && <Dock />}
+      {!fullBleed && <InstallBanner />}
       <AmbientLayers />
     </div>
   );
@@ -60,6 +62,7 @@ function TopBar() {
   const unlocked = useParentUnlocked();
   const navigate = useNavigate();
   const w = weather.data ? describeWeather(weather.data.code, weather.data.isDay) : null;
+  const online = useOnline();
 
   return (
     <header className="flex h-[5.4rem] shrink-0 items-center justify-between gap-2 px-[2.2rem] pt-[env(safe-area-inset-top)] max-md:h-[4.6rem] max-md:px-3">
@@ -73,6 +76,11 @@ function TopBar() {
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-3 max-md:gap-1.5">
+        {!online && (
+          <span className="rounded-full bg-ink px-3 py-1 text-[1.05rem] font-black text-white" title="No internet: showing what this screen saved last">
+            Offline
+          </span>
+        )}
         {w && weather.data && (
           <div className="flex items-center gap-2 rounded-full bg-white/80 py-1.5 pl-2.5 pr-5 ring-1 ring-black/5 max-md:pr-3">
             <span className="text-[2rem] leading-none max-md:text-[1.5rem]">{w.emoji}</span>
@@ -254,3 +262,19 @@ function AmbientLayers() {
     </AnimatePresence>
   );
 }
+
+function useOnline(): boolean {
+  const [online, setOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
+  useEffect(() => {
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
+  }, []);
+  return online;
+}
+

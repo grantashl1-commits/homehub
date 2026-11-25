@@ -55,25 +55,51 @@ export default defineConfig(({ mode }) => {
       vercelApiInDev(),
       VitePWA({
         registerType: "autoUpdate",
-        includeAssets: ["icon.svg", "icon-192.png", "icon-512.png", "apple-touch-icon.png"],
+        includeAssets: ["icon.svg", "icon-192.png", "icon-512.png", "icon-maskable-192.png", "icon-maskable-512.png", "apple-touch-icon.png"],
+        // An installable app on phones and tablets (Add to Home Screen), after
+        // the web.dev / PWABuilder manifest checklist: id + scope, standalone,
+        // separate maskable icons, shortcuts and install screenshots.
         manifest: {
+          id: "/",
           name: "Home Hub",
           short_name: "Home Hub",
           description: "Our family's kitchen screen: jobs and jars, fridge notes, dinner, calendar and nightly wins.",
+          lang: "en-NZ",
+          dir: "ltr",
+          categories: ["lifestyle", "productivity", "kids"],
           theme_color: "#fbf6ee",
           background_color: "#fbf6ee",
-          display: "fullscreen",
+          display: "standalone",
+          display_override: ["standalone", "minimal-ui"],
           orientation: "any",
-          start_url: "/",
+          start_url: "/?source=pwa",
+          scope: "/",
           icons: [
-            { src: "icon-192.png", sizes: "192x192", type: "image/png" },
-            { src: "icon-512.png", sizes: "512x512", type: "image/png" },
-            { src: "icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+            { src: "icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+            { src: "icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+            { src: "icon-maskable-192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
+            { src: "icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+          ],
+          shortcuts: [
+            { name: "Shopping list", short_name: "List", url: "/list", icons: [{ src: "icon-192.png", sizes: "192x192" }] },
+            { name: "Leave a note", short_name: "Note", url: "/notes?add=1", icons: [{ src: "icon-192.png", sizes: "192x192" }] },
+            { name: "Calendar", url: "/calendar", icons: [{ src: "icon-192.png", sizes: "192x192" }] },
+            { name: "Dinner reflection", short_name: "Reflection", url: "/reflect", icons: [{ src: "icon-192.png", sizes: "192x192" }] },
+          ],
+          screenshots: [
+            { src: "screenshots/phone-home.png", sizes: "824x1648", type: "image/png", form_factor: "narrow", label: "Home on a phone" },
+            { src: "screenshots/tablet-home.png", sizes: "1280x800", type: "image/png", form_factor: "wide", label: "The kitchen screen" },
           ],
         },
         workbox: {
+          // A new version takes over straight away (the page then reloads onto it).
+          skipWaiting: true,
+          clientsClaim: true,
+          cleanupOutdatedCaches: true,
           navigateFallbackDenylist: [/^\/api\//],
           globPatterns: ["**/*.{js,css,html,svg,png,woff2,json}"],
+          // Install-screen pictures are for the store-style install sheet only.
+          globIgnores: ["screenshots/**"],
           maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
           runtimeCaching: [
             {
