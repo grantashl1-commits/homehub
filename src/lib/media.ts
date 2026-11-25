@@ -102,7 +102,11 @@ const SHARED = "homehub-media-shared";
  * storage, once each (remembered on this screen), so other screens can play
  * them. Runs when a family account is signed in.
  */
+let sharing = false;
+
 export async function shareOlderMedia(): Promise<void> {
+  if (sharing) return;
+  sharing = true;
   let done: string[] = [];
   try {
     done = JSON.parse(localStorage.getItem(SHARED) ?? "[]") as string[];
@@ -110,17 +114,26 @@ export async function shareOlderMedia(): Promise<void> {
     /* fresh list */
   }
   const seen = new Set(done);
-  for (const k of await keys(store)) {
-    const id = String(k);
-    if (seen.has(id)) continue;
-    const blob = await get<Blob>(id, store);
-    if (!blob) continue;
-    try {
-      await uploadFamilyMedia(id, blob);
-      seen.add(id);
-    } catch {
-      break; // offline or not set up yet: try again next time
+  // One file failing (too big, odd type) mustn't stop the rest. Only a run of
+  // failures in a row (offline, signed out) ends this pass; the next one retries.
+  let failedInARow = 0;
+  try {
+    for (const k of await keys(store)) {
+      const id = String(k);
+      if (seen.has(id)) continue;
+      const blob = await get<Blob>(id, store);
+      if (!blob) continue;
+      try {
+        await uploadFamilyMedia(id, blob);
+        seen.add(id);
+        failedInARow = 0;
+      } catch (e) {
+        console.warn(`Couldn't share ${id} with the family`, e);
+        if (++failedInARow >= 3) break;
+      }
     }
+  } finally {
+    sharing = false;
   }
   try {
     localStorage.setItem(SHARED, JSON.stringify([...seen]));

@@ -409,7 +409,12 @@ export async function downloadFamilyMedia(id: string): Promise<Blob | undefined>
   const h = useAccount.getState().household;
   if (!h || !accountsConfigured) return undefined;
   const { data, error } = await sb().storage.from(MEDIA_BUCKET).download(`${h.id}/${id}`);
-  return error ? undefined : (data ?? undefined);
+  if (error) {
+    // Usually: the screen that made it hasn't shared it yet. Say so in the console rather than fail silently.
+    console.warn(`Family media ${id} isn't in storage yet`, error.message);
+    return undefined;
+  }
+  return data ?? undefined;
 }
 
 export async function removeFamilyMedia(id: string): Promise<void> {
