@@ -103,7 +103,7 @@ function Hero() {
 
       <div className="relative mt-4">
         <p className="mb-2.5 text-[1.05rem] font-black uppercase tracking-[0.1em] opacity-60">Who's here?</p>
-        <div className="flex flex-wrap gap-x-3 gap-y-2 pt-1">
+        <div className="flex flex-wrap gap-x-3 gap-y-2 pt-1 max-md:grid max-md:grid-cols-4 max-md:gap-x-1">
           {members.slice(0, 6).map((m) => (
             <WhoButton key={m.id} member={m} />
           ))}
@@ -271,19 +271,20 @@ function WhoButton({ member }: { member: Member }) {
       aria-label={`${member.name}'s zone${waiting ? ` — ${waiting}` : ""}`}
       title={waiting || `${member.name}'s zone`}
     >
-      <span className="flex items-start gap-1">
+      {/* Bench: badges beside the face. Phones: in a row under the name, so all four faces fit across. */}
+      <span className="flex items-start gap-1 max-md:flex-col max-md:items-center max-md:gap-0.5">
         <span className="flex flex-col items-center">
           <Avatar member={member} size={3.7} ring />
           <span className="mt-1 block max-w-[6.5rem] truncate rounded-full bg-white/80 px-2 text-center text-[1.1rem] font-extrabold text-ink">{member.name}</span>
         </span>
         {/* Beside the face, not on it: ✉️ new notes for them, ⭐ PointPals jobs still to do. */}
         {(unread > 0 || todo > 0) && (
-          <span className="flex flex-col items-start gap-1 pt-0.5">
+          <span className="flex flex-col items-start gap-1 pt-0.5 max-md:flex-row max-md:pt-0">
             {unread > 0 && (
-              <span className="flex h-[1.8rem] items-center gap-0.5 rounded-full bg-coral px-1.5 text-[0.95rem] font-black text-white shadow-sm">✉️{unread}</span>
+              <span className="flex h-[1.8rem] items-center gap-0.5 rounded-full bg-coral px-1.5 text-[0.95rem] font-black text-white shadow-sm max-md:h-[1.6rem] max-md:px-1 max-md:text-[0.85rem]">✉️{unread}</span>
             )}
             {todo > 0 && (
-              <span className="flex h-[1.8rem] items-center gap-0.5 rounded-full bg-ink px-1.5 text-[0.95rem] font-black text-white shadow-sm">⭐{todo}</span>
+              <span className="flex h-[1.8rem] items-center gap-0.5 rounded-full bg-ink px-1.5 text-[0.95rem] font-black text-white shadow-sm max-md:h-[1.6rem] max-md:px-1 max-md:text-[0.85rem]">⭐{todo}</span>
             )}
           </span>
         )}

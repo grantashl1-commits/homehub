@@ -186,9 +186,9 @@ function RecipeSheet({ day, onClose }: { day: DayMeal | null; onClose: () => voi
     <Sheet open={!!day} onOpenChange={(o) => !o && onClose()} title={r?.name ?? "Plan this dinner"} wide>
       {day && (
         <>
-        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-6">
+        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-6 max-md:grid-cols-1 max-md:gap-4">
           <div className="flex flex-col gap-4">
-            <div className="relative aspect-[4/3] overflow-hidden rounded-[1.8rem]">
+            <div className="relative aspect-[4/3] overflow-hidden rounded-[1.8rem] max-md:aspect-[16/9]">
               <Photo recipe={r} className="absolute inset-0 size-full" />
               <span className="absolute left-4 top-4 rounded-full bg-white px-4 py-1 text-[1.2rem] font-black">{formatDay(day.date)}</span>
             </div>
@@ -196,7 +196,7 @@ function RecipeSheet({ day, onClose }: { day: DayMeal | null; onClose: () => voi
               <p className="mb-2 flex items-center gap-2 text-[1.2rem] font-black text-ink-2">
                 <Heart className="size-5" /> Who wants this again?
               </p>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 {members.map((m) => (
                   <button
                     key={m.id}
@@ -232,7 +232,7 @@ function RecipeSheet({ day, onClose }: { day: DayMeal | null; onClose: () => voi
                   <p className="text-[1.3rem] font-black uppercase tracking-[0.08em] text-ink-3">Ingredients</p>
                   <ReadAloud text={`${r.name}. You need: ${r.ingredients.map(ingredientName).join(", ")}.${r.method?.length ? ` Then: ${r.method.join(". ")}.` : ""}`} size={3.2} />
                 </div>
-                <ul className="flex max-h-[28rem] flex-col gap-2 overflow-y-auto pr-1">
+                <ul className="flex max-h-[28rem] flex-col gap-2 overflow-y-auto pr-1 max-md:max-h-none max-md:overflow-visible">
                   {r.ingredients.map((line, i) => {
                     const name = ingredientName(line);
                     const on = onList(name);

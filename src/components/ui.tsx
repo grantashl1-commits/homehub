@@ -1,6 +1,7 @@
 import { forwardRef, useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useDragControls } from "motion/react";
+import { useIsPhone } from "@/lib/useIsPhone";
 import { Volume2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { canSpeak, sfx, speak, stopSpeaking } from "@/lib/device";
@@ -143,6 +144,25 @@ export function Sheet({
   wide?: boolean;
   hideTitle?: boolean;
 }) {
+  const phone = useIsPhone();
+  const dragControls = useDragControls();
+  const inner = (
+    <>
+      <div className={cn("flex items-center justify-between gap-4 px-8 pt-6 max-md:px-4 max-md:pt-1", hideTitle && "absolute right-0 top-0 z-10")}>
+        <Dialog.Title className={cn("font-display text-[2.6rem] font-black leading-none max-md:text-[2.2rem]", hideTitle && "sr-only")}>{title}</Dialog.Title>
+        <Dialog.Close asChild>
+          <button
+            type="button"
+            aria-label="Close"
+            className="tap grid size-[4rem] shrink-0 place-items-center rounded-full bg-white text-ink shadow-[var(--shadow-soft)]"
+          >
+            <X className="size-8" strokeWidth={3} />
+          </button>
+        </Dialog.Close>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-8 pb-8 pt-5 max-md:px-4 max-md:pb-6 max-md:pt-4">{children}</div>
+    </>
+  );
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <AnimatePresence>
@@ -157,33 +177,46 @@ export function Sheet({
               />
             </Dialog.Overlay>
             <Dialog.Content asChild forceMount aria-describedby={undefined}>
-              <motion.div
-                className={cn(
-                  "fixed left-1/2 top-1/2 z-50 flex max-h-[92vh] w-[min(56rem,94vw)] flex-col overflow-hidden rounded-[2.25rem] bg-paper shadow-2xl outline-none",
-                  wide && "w-[min(72rem,96vw)]",
-                  className,
-                )}
-                initial={{ opacity: 0, y: "-44%", x: "-50%", scale: 0.94 }}
-                animate={{ opacity: 1, y: "-50%", x: "-50%", scale: 1 }}
-                exit={{ opacity: 0, y: "-46%", x: "-50%", scale: 0.96 }}
-                transition={{ type: "spring", stiffness: 380, damping: 32 }}
-              >
-                <div className={cn("flex items-center justify-between gap-4 px-8 pt-6 max-md:px-4 max-md:pt-4", hideTitle && "absolute right-0 top-0 z-10")}>
-                  <Dialog.Title className={cn("font-display text-[2.6rem] font-black leading-none", hideTitle && "sr-only")}>
-                    {title}
-                  </Dialog.Title>
-                  <Dialog.Close asChild>
-                    <button
-                      type="button"
-                      aria-label="Close"
-                      className="tap grid size-[4rem] shrink-0 place-items-center rounded-full bg-white text-ink shadow-[var(--shadow-soft)]"
-                    >
-                      <X className="size-8" strokeWidth={3} />
-                    </button>
-                  </Dialog.Close>
-                </div>
-                <div className="min-h-0 flex-1 overflow-y-auto px-8 pb-8 pt-5 max-md:px-4 max-md:pb-6">{children}</div>
-              </motion.div>
+              {phone ? (
+                // Phones: a bottom sheet that slides up, with a handle to drag it away.
+                <motion.div
+                  className={cn(
+                    "fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[2rem] bg-paper pb-[env(safe-area-inset-bottom)] shadow-2xl outline-none",
+                    className,
+                  )}
+                  initial={{ y: "100%" }}
+                  animate={{ y: 0 }}
+                  exit={{ y: "100%" }}
+                  transition={{ type: "spring", stiffness: 420, damping: 40 }}
+                  drag="y"
+                  dragControls={dragControls}
+                  dragListener={false}
+                  dragConstraints={{ top: 0, bottom: 0 }}
+                  dragElastic={{ top: 0, bottom: 0.6 }}
+                  onDragEnd={(_e, info) => {
+                    if (info.offset.y > 110 || info.velocity.y > 600) onOpenChange(false);
+                  }}
+                >
+                  <div className="flex shrink-0 touch-none justify-center pb-1 pt-2.5" onPointerDown={(e) => dragControls.start(e)}>
+                    <span className="h-[0.45rem] w-[4.2rem] rounded-full bg-ink/20" />
+                  </div>
+                  {inner}
+                </motion.div>
+              ) : (
+                <motion.div
+                  className={cn(
+                    "fixed left-1/2 top-1/2 z-50 flex max-h-[92vh] w-[min(56rem,94vw)] flex-col overflow-hidden rounded-[2.25rem] bg-paper shadow-2xl outline-none",
+                    wide && "w-[min(72rem,96vw)]",
+                    className,
+                  )}
+                  initial={{ opacity: 0, y: "-44%", x: "-50%", scale: 0.94 }}
+                  animate={{ opacity: 1, y: "-50%", x: "-50%", scale: 1 }}
+                  exit={{ opacity: 0, y: "-46%", x: "-50%", scale: 0.96 }}
+                  transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                >
+                  {inner}
+                </motion.div>
+              )}
             </Dialog.Content>
           </Dialog.Portal>
         )}
