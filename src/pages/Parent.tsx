@@ -51,12 +51,12 @@ export default function Parent() {
   if (!unlocked) {
     return (
       <div className="grid h-full place-items-center">
-        <div className="card flex items-center gap-10 px-10 py-6">
-          <div className="flex max-w-[18rem] flex-col gap-4">
-            <span className="text-[4rem] leading-none">🔒</span>
-            <h1 className="font-display text-[3rem] font-black leading-[1.05]">Grown-ups only</h1>
+        <div className="card flex items-center gap-10 px-10 py-6 max-md:flex-col max-md:gap-6 max-md:px-5 max-md:py-7">
+          <div className="flex max-w-[18rem] flex-col gap-4 max-md:max-w-none max-md:items-center max-md:gap-2 max-md:text-center">
+            <span className="text-[4rem] leading-none max-md:text-[3rem]">🔒</span>
+            <h1 className="font-display text-[3rem] font-black leading-[1.05] max-md:text-[2.4rem]">Grown-ups only</h1>
             <p className="text-[1.3rem] font-semibold text-ink-2">Approvals, money, connections and settings live in here.</p>
-            <button type="button" onClick={() => navigate("/")} className="self-start text-[1.3rem] font-extrabold text-ink-2 underline">
+            <button type="button" onClick={() => navigate("/")} className="self-start text-[1.3rem] font-extrabold text-ink-2 underline max-md:order-last max-md:self-center">
               Back home
             </button>
           </div>
@@ -82,8 +82,8 @@ function ParentArea() {
     { id: "settings", label: "Settings", icon: SettingsIcon },
   ];
   return (
-    <div className="grid h-full grid-cols-[15rem_minmax(0,1fr)] gap-[1.3rem]">
-      <nav className="flex flex-col gap-1.5 rounded-[2rem] bg-white/80 p-2.5 ring-1 ring-black/5">
+    <div className="grid h-full grid-cols-[15rem_minmax(0,1fr)] gap-[1.3rem] max-md:flex max-md:h-auto max-md:flex-col max-md:gap-3">
+      <nav className="flex flex-col gap-1.5 rounded-[2rem] bg-white/80 p-2.5 ring-1 ring-black/5 max-md:sticky max-md:top-0 max-md:z-10 max-md:-mx-1 max-md:flex-row max-md:items-center max-md:overflow-x-auto max-md:rounded-full max-md:bg-white/95 max-md:p-1.5 max-md:backdrop-blur no-scrollbar">
         {tabs.map((t) => (
           <button
             key={t.id}
@@ -93,7 +93,7 @@ function ParentArea() {
               setTab(t.id);
             }}
             className={cn(
-              "tap relative flex min-h-[3.8rem] items-center gap-3 rounded-[1.3rem] px-4 text-[1.3rem] font-extrabold",
+              "tap relative flex min-h-[3.8rem] shrink-0 items-center gap-3 rounded-[1.3rem] px-4 text-[1.3rem] font-extrabold max-md:min-h-[3rem] max-md:gap-2 max-md:rounded-full max-md:px-3.5 max-md:text-[1.15rem]",
               tab === t.id ? "bg-ink text-white" : "text-ink-2 hover:bg-black/5",
             )}
           >
@@ -109,12 +109,12 @@ function ParentArea() {
             lockParent();
             navigate("/");
           }}
-          className="tap mt-auto flex min-h-[3.8rem] items-center gap-3 rounded-[1.3rem] bg-coral-tint px-4 text-[1.3rem] font-extrabold text-coral-ink"
+          className="tap mt-auto flex min-h-[3.8rem] shrink-0 items-center gap-3 rounded-[1.3rem] bg-coral-tint px-4 text-[1.3rem] font-extrabold text-coral-ink max-md:mt-0 max-md:min-h-[3rem] max-md:rounded-full max-md:px-3.5 max-md:text-[1.15rem]"
         >
           <Lock className="size-6" /> Lock
         </button>
       </nav>
-      <div className="card min-h-0 overflow-y-auto p-7 no-scrollbar">
+      <div className="card min-h-0 overflow-y-auto p-7 no-scrollbar max-md:overflow-visible max-md:p-4">
         <AnimatePresence mode="wait">
           <motion.div key={tab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
             {tab === "approvals" && <Approvals />}
@@ -150,7 +150,7 @@ function SyncChip() {
             : (["Changes save as you type", "text-ink-3"] as const);
 
   return (
-    <p className={cn("px-3 pb-1 text-[1.05rem] font-extrabold", tone)} aria-live="polite">
+    <p className={cn("px-3 pb-1 text-[1.05rem] font-extrabold max-md:hidden", tone)} aria-live="polite">
       {text}
     </p>
   );
@@ -159,8 +159,8 @@ function SyncChip() {
 
 function H({ children, right }: { children: ReactNode; right?: ReactNode }) {
   return (
-    <div className="mb-5 flex items-center justify-between gap-4">
-      <h2 className="font-display text-[2.8rem] font-black leading-none">{children}</h2>
+    <div className="mb-5 flex flex-wrap items-center justify-between gap-4 max-md:gap-3">
+      <h2 className="font-display text-[2.8rem] font-black leading-none max-md:text-[2rem]">{children}</h2>
       {right}
     </div>
   );
@@ -341,13 +341,13 @@ function Family() {
       </H>
       <div className="flex flex-col gap-4">
         {members.map((m) => (
-          <div key={m.id} className="rounded-[1.8rem] bg-paper p-5">
-            <div className="flex items-center gap-4">
+          <div key={m.id} className="rounded-[1.8rem] bg-paper p-5 max-md:p-4">
+            <div className="flex items-center gap-4 max-md:flex-wrap max-md:gap-3">
               <PhotoAvatarButton member={m} size={5} onPhoto={(photo) => updateMember(m.id, { photo })} />
               <input
                 value={m.name}
                 onChange={(e) => updateMember(m.id, { name: e.target.value })}
-                className="h-[4.2rem] w-[11rem] min-w-0 rounded-[1.2rem] border-2 border-line bg-white px-4 font-display text-[2rem] font-black outline-none focus:border-sky"
+                className="h-[4.2rem] w-[11rem] min-w-0 max-md:w-auto max-md:flex-1 max-md:text-[1.6rem] rounded-[1.2rem] border-2 border-line bg-white px-4 font-display text-[2rem] font-black outline-none focus:border-sky"
               />
               <div className="flex shrink-0 whitespace-nowrap rounded-full bg-white p-1 ring-1 ring-black/5">
                 {(["parent", "child"] as const).map((r) => (
@@ -394,7 +394,7 @@ function Family() {
                 <Trash2 className="size-6" />
               </button>
             </div>
-            <div className="mt-3 flex items-center gap-2">
+            <div className="mt-3 flex items-center gap-2 max-md:flex-wrap">
               <PhotoTile member={m} size={3.2} onPhoto={(photo) => updateMember(m.id, { photo })} />
               {PALS.map((p) => (
                 <button
@@ -469,7 +469,7 @@ function Money() {
       {!d ? (
         <div className="skeleton h-[20rem] rounded-[1.6rem]" />
       ) : (
-        <div className="grid grid-cols-2 gap-5">
+        <div className="grid grid-cols-2 gap-5 max-md:grid-cols-1">
           <div className="rounded-[1.8rem] bg-sun-tint p-5">
             <p className="text-[1.15rem] font-black uppercase tracking-[0.08em] text-[#7a5a0c]">Spent in {d.month}</p>
             <p className="font-display text-[4rem] font-black leading-none">${d.spentThisMonth.toLocaleString("en-NZ", { maximumFractionDigits: 0 })}</p>
@@ -519,7 +519,7 @@ function Money() {
           </div>
           <div className="col-span-2 rounded-[1.8rem] bg-paper p-5">
             <p className="mb-3 text-[1.15rem] font-black uppercase tracking-[0.08em] text-ink-3">Quick add an expense</p>
-            <div className="grid grid-cols-[2fr_1fr] gap-3">
+            <div className="grid grid-cols-[2fr_1fr] gap-3 max-md:grid-cols-1">
               <Field label="What was it?" value={item} onChange={(e) => setItem(e.target.value)} placeholder="e.g. School shoes" />
               <Field label="Amount ($)" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="49.90" />
             </div>
@@ -852,7 +852,7 @@ function SignInPanel({
         </BigButton>
       ) : (
         <form
-          className="grid grid-cols-[1fr_1fr_auto] gap-3"
+          className="grid grid-cols-[1fr_1fr_auto] gap-3 max-md:grid-cols-1"
           onSubmit={async (ev) => {
             ev.preventDefault();
             setBusy(true);
@@ -931,9 +931,9 @@ function SettingsTab() {
   return (
     <div className="flex flex-col gap-5">
       <H>Settings</H>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="Family name" value={s.familyName} onChange={(e) => update({ familyName: e.target.value })} />
-        <div className="grid grid-cols-[1fr_1fr_auto] items-end gap-3">
+        <div className="grid grid-cols-[1fr_1fr_auto] items-end gap-3 max-md:grid-cols-1">
           <Field label="New PIN" inputMode="numeric" maxLength={6} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} type="password" />
           <Field label="Again" inputMode="numeric" maxLength={6} value={pin2} onChange={(e) => setPin2(e.target.value.replace(/\D/g, ""))} type="password" />
           <BigButton
@@ -952,7 +952,7 @@ function SettingsTab() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
         <Toggle checked={s.showSamples} onChange={(v) => update({ showSamples: v })} label="Show sample data" hint="Sample events and meals until things are connected" />
         <Toggle checked={s.sounds} onChange={(v) => update({ sounds: v })} label="Sounds" hint="Little pops and chimes" />
         <Toggle checked={s.reducedMotion} onChange={(v) => update({ reducedMotion: v })} label="Calm mode" hint="Less movement and no confetti" />

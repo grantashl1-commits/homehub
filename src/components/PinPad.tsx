@@ -148,7 +148,7 @@ function Key({ children, onClick, className }: { children: ReactNode; onClick: (
       type="button"
       onClick={onClick}
       className={cn(
-        "tap grid size-[5.6rem] place-items-center rounded-[1.6rem] bg-white font-display text-[2.6rem] font-black shadow-[var(--shadow-soft)] ring-1 ring-black/5",
+        "tap grid size-[5.6rem] max-md:size-[4.6rem] place-items-center rounded-[1.6rem] bg-white font-display text-[2.6rem] font-black shadow-[var(--shadow-soft)] ring-1 ring-black/5",
         className,
       )}
     >
