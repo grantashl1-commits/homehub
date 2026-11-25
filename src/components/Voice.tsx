@@ -175,9 +175,14 @@ export function AudioPlayer({
   const [playing, setPlaying] = useState(false);
   const audio = useRef<HTMLAudioElement | null>(null);
 
+  const [missing, setMissing] = useState(false);
   useEffect(() => {
     if (src) return setUrl(src);
-    if (mediaId) void mediaUrl(mediaId).then(setUrl);
+    if (mediaId)
+      void mediaUrl(mediaId).then((u) => {
+        setUrl(u);
+        setMissing(!u);
+      });
   }, [src, mediaId]);
 
   useEffect(() => () => audio.current?.pause(), []);
@@ -198,6 +203,13 @@ export function AudioPlayer({
   };
 
   const bars = [0.4, 0.75, 0.5, 1, 0.65, 0.85, 0.45, 0.9, 0.55, 0.7, 0.35, 0.6];
+  if (missing) {
+    return (
+      <p className={cn("rounded-[1rem] bg-white/60 px-3 py-2 text-[1.1rem] font-bold leading-snug", className)}>
+        🎤 This recording hasn't reached this screen yet. Open the hub on the screen that recorded it and it'll be shared.
+      </p>
+    );
+  }
   return (
     <div className={cn("flex items-center gap-4", className)}>
       <button

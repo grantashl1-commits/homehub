@@ -39,7 +39,17 @@ export default function App() {
   // Once signed in to the family, share this screen's older recordings and photos.
   const familyId = useAccount((s) => s.household?.id);
   useEffect(() => {
-    if (familyId) void shareOlderMedia().catch(() => {});
+    if (!familyId) return;
+    const share = () => void shareOlderMedia().catch(() => {});
+    share();
+    // And again whenever the screen wakes up, so anything that failed gets another go.
+    const onWake = () => document.visibilityState === "visible" && share();
+    document.addEventListener("visibilitychange", onWake);
+    window.addEventListener("online", share);
+    return () => {
+      document.removeEventListener("visibilitychange", onWake);
+      window.removeEventListener("online", share);
+    };
   }, [familyId]);
   useEffect(() => {
     const t = window.setTimeout(() => {

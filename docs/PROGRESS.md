@@ -398,3 +398,12 @@ The printable habit worksheet as a game, from each kid's Me page
   starting with "_" (tests included). Adding google-tasks made 13 and the
   deploy failed, so api tests moved to tests/api/ and parse-ics became
   _parse-ics. Keep helpers "_"-prefixed and tests out of /api.
+
+## 25 Nov 2026: shared voice notes backfill fix
+
+- Only 3 of ~23 recordings reached `hub-media`: shareOlderMedia() stopped the
+  whole pass at the first failed upload. It now skips a failed file and keeps
+  going (stops only after 3 failures in a row), runs one pass at a time, and
+  runs again whenever the screen wakes or comes back online.
+- Missing recordings say so ("hasn't reached this screen yet…") instead of a
+  play button that does nothing, and failed downloads/uploads are logged.
